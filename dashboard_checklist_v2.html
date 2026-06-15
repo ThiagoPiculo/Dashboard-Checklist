@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist Digital Tracker v2 — Dashboard de Evolução Semanal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb' },
+                        darkBg: '#080f1e',
+                        darkCard: '#111c30',
+                        darkBorder: '#1d2c47'
+                    },
+                    fontFamily: { sans: ['Montserrat', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+        body { background-color: #080f1e; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #080f1e; }
+        ::-webkit-scrollbar-thumb { background: #1d2c47; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+        html { scroll-behavior: smooth; }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+            50% { box-shadow: 0 0 12px 3px rgba(239,68,68,0.3); }
+        }
+        .overdue-pulse { animation: pulse-glow 2.5s ease-in-out infinite; }
+
+        @keyframes slide-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in { animation: slide-in 0.25s ease forwards; }
+
+        .progress-ring-track { fill: none; stroke: #1d2c47; }
+        .progress-ring-fill  { fill: none; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease; }
+
+        /* Multi-select dropdown */
+        .ms-dropdown { position: relative; user-select: none; }
+        .ms-trigger {
+            display: flex; align-items: center; justify-content: space-between; gap: 6px;
+            width: 100%; background: #080f1e; border: 1px solid #1d2c47;
+            border-radius: 8px; padding: 6px 10px; font-size: 11px; color: #e2e8f0;
+            cursor: pointer; transition: border-color .15s;
+        }
+        .ms-trigger:hover { border-color: #3b82f6; }
+        .ms-trigger.active { border-color: #3b82f6; }
+        .ms-trigger .ms-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .ms-trigger .ms-arrow { flex-shrink: 0; transition: transform .2s; }
+        .ms-trigger.active .ms-arrow { transform: rotate(180deg); }
+        .ms-panel {
+            display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: #111c30; border: 1px solid #1d2c47; border-radius: 10px;
+            padding: 6px 0; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+            min-width: 220px;
+        }
+        .ms-panel.open { display: block; }
+        .ms-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 7px 12px; font-size: 11px; color: #cbd5e1;
+            cursor: pointer; transition: background .1s;
+        }
+        .ms-item:hover { background: #1d2c47; }
+        .ms-item input[type=checkbox] { accent-color: #3b82f6; width: 13px; height: 13px; cursor: pointer; flex-shrink: 0; }
+        .ms-item.checked { color: #fff; font-weight: 600; }
+        .ms-divider { height: 1px; background: #1d2c47; margin: 4px 0; }
+        .ms-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 16px; height: 16px; padding: 0 4px;
+            background: #2563eb; color: #fff; border-radius: 99px; font-size: 9px; font-weight: 700;
+        }
+    </style>
+</head>
+<body class="text-slate-100 font-sans min-h-screen">
+<div class="flex flex-col min-h-screen">
+
+<!-- HEADER -->
+<header class="border-b border-[#1d2c47] bg-[#0c1424]/95 backdrop-blur px-6 py-4 sticky top-0 z-30 shadow-lg">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+            <div class="p-2.5 bg-blue-600/20 text-blue-400 rounded-xl border border-blue-500/30">
+                <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    Checklist Digital Tracker
+                    <span class="text-xs bg-emerald-500/15 text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/30 font-medium">v2 — Dados Reais</span>
+                </h1>
+                <p class="text-xs text-slate-400">DINIT/SUNIN/INENG/INGPP · SERPRO · Thiago Soares Piculo</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2.5 w-full md:w-auto justify-end">
+            <button id="importDataBtn" class="flex items-center gap-2 bg-[#111c30] hover:bg-[#182844] text-slate-200 px-3.5 py-2 rounded-lg border border-[#1d2c47] text-sm font-medium transition-all">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+                <span>Importar Dados</span>
+            </button>
+            <button id="resetDemoBtn" class="flex items-center gap-2 bg-[#111c30] hover:bg-[#182844] text-slate-300 px-3.5 py-2 rounded-lg border border-[#1d2c47] text-sm font-medium transition-all">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                <span>Resetar</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main class="flex-grow p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- STICKY FILTERS -->
+    <div class="bg-[#111c30]/95 backdrop-blur border border-[#1d2c47] rounded-xl p-4 shadow-xl sticky top-[73px] z-20">
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto flex-grow max-w-4xl">
+
+                <!-- Período (single select nativo — pode ter muitas datas) -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Período de Coleta</label>
+                    <select id="filterPeriodo" class="w-full bg-[#080f1e] border border-[#1d2c47] rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-brand-500 cursor-pointer"></select>
+                </div>
+
+                <!-- Módulo — multi-select com checkboxes -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Módulo</label>
+                    <div class="ms-dropdown" id="msModulo">
+                        <div class="ms-trigger" id="msModuloTrigger">
+                            <span class="ms-label" id="msModuloLabel">Todos os Módulos</span>
+                            <svg class="ms-arrow w-3.5 h-3.5 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="ms-panel" id="msModuloPanel">
+                            <label class="ms-item" id="msModuloAll">
+                                <input type="checkbox" value="__ALL__" checked> Todos os Módulos
+                            </label>
+                            <div class="ms-divider"></div>
+                            <label class="ms-item">
+                                <input type="checkbox" value="Construção e Lançamento de Produtos de Parcerias"> Produtos de Parcerias
+                            </label>
+                            <label class="ms-item">
+                                <input type="checkbox" value="Construção e Lançamento de Produtos Internos"> Produtos Internos
+                            </label>
+                            <label class="ms-item">
+                                <input type="checkbox" value="Amadurecimento de Oportunidades"> Oportunidades
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pendência — multi-select com checkboxes -->
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Pendência Externa</label>
+                    <div class="ms-dropdown" id="msPendencia">
+                        <div class="ms-trigger" id="msPendenciaTrigger">
+                            <span class="ms-label" id="msPendenciaLabel">Todas as Pendências</span>
+                            <svg class="ms-arrow w-3.5 h-3.5 text-slate-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="ms-panel" id="msPendenciaPanel">
+                            <label class="ms-item" id="msPendenciaAll">
+                                <input type="checkbox" value="__ALL__" checked> Todas as Pendências
+                            </label>
+                            <div class="ms-divider"></div>
+                            <label class="ms-item">
+                                <input type="checkbox" value="Sim"> Com Bloqueio (Travados)
+                            </label>
+                            <label class="ms-item">
+                                <input type="checkbox" value="Não"> Sem Bloqueio (Em Fluxo)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="flex items-center gap-3 w-full lg:w-auto justify-end border-t lg:border-t-0 pt-3 lg:pt-0 border-[#1d2c47]">
+                <div class="bg-[#080f1e] border border-[#1d2c47] rounded-lg p-1 flex items-center gap-1 text-xs">
+                    <button id="viewModeCards" class="px-3 py-1.5 rounded-md bg-brand-600 text-white font-semibold flex items-center gap-1.5">
+                        <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i><span>Cards</span>
+                    </button>
+                    <button id="viewModeTable" class="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 font-semibold flex items-center gap-1.5">
+                        <i data-lucide="table" class="w-3.5 h-3.5"></i><span>Tabela</span>
+                    </button>
+                </div>
+                <button id="clearFiltersBtn" title="Limpar Filtros" class="p-2 bg-[#080f1e] hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg border border-[#1d2c47]">
+                    <i data-lucide="eraser" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI CARDS -->
+    <div class="space-y-3">
+        <div class="flex items-center gap-2 border-b border-[#1d2c47] pb-2">
+            <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-400"></i>
+            <h2 class="text-sm font-bold uppercase tracking-wider text-blue-400">Métricas Gerais — Portfólio</h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div class="bg-[#111c30] border-2 border-emerald-500/40 rounded-xl p-4 text-center flex flex-col justify-center min-h-[110px] hover:scale-[1.02] transition-all">
+                <span id="kpi-total" class="text-3xl font-extrabold text-emerald-400">—</span>
+                <span class="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-wider">Total Produtos</span>
+                <span class="text-[10px] text-slate-500">No Portfólio</span>
+            </div>
+            <div class="bg-[#111c30] border-2 border-blue-500/40 rounded-xl p-4 text-center flex flex-col justify-center min-h-[110px] hover:scale-[1.02] transition-all">
+                <span id="kpi-internos" class="text-3xl font-extrabold text-blue-400">—</span>
+                <span class="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-wider">Produtos Internos</span>
+                <span class="text-[10px] text-slate-500">Constr. e Lançamento</span>
+            </div>
+            <div class="bg-[#111c30] border-2 border-purple-500/40 rounded-xl p-4 text-center flex flex-col justify-center min-h-[110px] hover:scale-[1.02] transition-all">
+                <span id="kpi-parcerias" class="text-3xl font-extrabold text-purple-400">—</span>
+                <span class="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-wider">Parcerias</span>
+                <span class="text-[10px] text-slate-500">Constr. e Lançamento</span>
+            </div>
+            <div class="bg-[#111c30] border-2 border-amber-500/40 rounded-xl p-4 text-center flex flex-col justify-center min-h-[110px] hover:scale-[1.02] transition-all">
+                <span id="kpi-oport" class="text-3xl font-extrabold text-amber-400">—</span>
+                <span class="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-wider">Oportunidades</span>
+                <span class="text-[10px] text-slate-500">Amadurecimento</span>
+            </div>
+            <div class="bg-[#111c30] border-2 border-rose-500/40 rounded-xl p-4 text-center flex flex-col justify-center min-h-[110px] hover:scale-[1.02] transition-all overdue-pulse">
+                <span id="kpi-vencidos" class="text-3xl font-extrabold text-rose-400">—</span>
+                <span class="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-wider">Previsão Vencida</span>
+                <span class="text-[10px] text-slate-500">Data ultrapassada</span>
+            </div>
+            <div class="bg-[#111c30] border-2 border-slate-500/40 rounded-xl p-4 text-center flex flex-col justify-center min-h-[110px] hover:scale-[1.02] transition-all">
+                <span id="kpi-avg-progress" class="text-3xl font-extrabold text-slate-300">—</span>
+                <span class="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-wider">Progresso Médio</span>
+                <span class="text-[10px] text-slate-500">Portfólio</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PORTFOLIO OVERVIEW CHART -->
+    <div id="portfolioOverviewSection" class="space-y-3">
+        <div onclick="togglePortfolioOverview()" class="flex items-center gap-2 border-b border-[#1d2c47] pb-2 cursor-pointer select-none hover:opacity-80 transition-opacity">
+            <i data-lucide="pie-chart" class="w-5 h-5 text-purple-400"></i>
+            <h2 class="text-sm font-bold uppercase tracking-wider text-purple-400 flex-grow">Visão Geral do Portfólio — Distribuição de Tarefas</h2>
+            <i id="portfolioChevron" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform duration-200"></i>
+        </div>
+        <div id="portfolioOverviewContent" class="bg-[#111c30] border border-[#1d2c47] rounded-xl p-5 overflow-x-auto"></div>
+    </div>
+
+    <!-- GROUPED SECTIONS -->
+    <div id="groupedSectionsContainer" class="space-y-8"></div>
+
+</main>
+
+<!-- CSV IMPORT MODAL -->
+<div id="csvModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#111c30] border border-[#1d2c47] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="p-5 border-b border-[#1d2c47] flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-brand-500/10 text-brand-400 rounded-xl"><i data-lucide="database" class="w-5 h-5"></i></div>
+                <div>
+                    <h3 class="font-bold text-white text-lg">Importar / Editar Dados</h3>
+                    <p class="text-xs text-slate-400">Suporta CSV com ponto-e-vírgula (arquivo .csv) ou vírgula (arquivo .txt)</p>
+                </div>
+            </div>
+            <button id="closeModalBtn" class="p-1.5 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-5 flex-grow overflow-y-auto space-y-4">
+            <p class="text-xs text-slate-400 leading-relaxed">Cole o conteúdo de um arquivo CSV (separado por <code class="text-indigo-300">;</code>) ou TXT (separado por <code class="text-indigo-300">,</code>). O dashboard detecta o formato automaticamente e recalcula tudo.</p>
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">Conteúdo do arquivo</label>
+                <textarea id="csvTextArea" class="w-full h-80 bg-[#080f1e] border border-[#1d2c47] rounded-xl p-4 text-xs font-mono text-emerald-400 focus:outline-none focus:border-indigo-500 whitespace-pre" spellcheck="false"></textarea>
+            </div>
+        </div>
+        <div class="p-4 border-t border-[#1d2c47] bg-[#0c1424] flex items-center justify-between">
+            <button id="resetToDefaultCSV" class="text-xs text-rose-400 hover:text-rose-300 font-medium">Restaurar Dados Originais</button>
+            <div class="flex items-center gap-3">
+                <button id="cancelModalBtn" class="bg-[#182844] hover:bg-[#203458] text-slate-300 px-4 py-2 rounded-lg text-sm font-medium border border-[#1d2c47]">Cancelar</button>
+                <button id="saveCSVDataBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-lg">Salvar e Processar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-5 right-5 z-50 bg-[#111c30] border border-brand-500/40 px-4 py-3.5 rounded-xl shadow-2xl flex items-center gap-2.5 max-w-sm transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="p-1 bg-brand-500/10 text-brand-400 rounded-lg"><i data-lucide="check-circle-2" class="w-4 h-4"></i></div>
+    <p id="toastMessage" class="text-xs font-medium text-slate-200"></p>
+</div>
+
+<footer class="border-t border-[#1d2c47] bg-[#050a14] py-5 px-6 text-center text-xs text-slate-500">
+    © 2026 · Checklist Digital Tracker v2 · DINIT/SUNIN/INENG/INGPP — SERPRO · Dados baseados nas coletas de 03/06/2026 e 12/06/2026
+</footer>
+
+</div>
+<script>
+// ─── DADOS REAIS DOS ARQUIVOS ────────────────────────────────────────────────
+// Fonte: Checklist digital tracker - 20260603.csv  (separador ; com aspas)
+//        Checklist digital tracker - 20260612.txt  (separador , sem aspas)
+// Pendencia_Externa no CSV original era numérica (0=Não, >0=Sim); normalizada aqui para Sim/Não
+const defaultCSVData = `Data_Coleta,Nome_Produto,Tipo_Modulo,Tipo_Produto,Status_Andamento,Previsao_Termino,Total_Tarefas,Tarefas_Concluidas,Percentual_Progresso,A_Fazer,Em_Andamento,Concluido,Pendencia_Externa
+03/06/2026,IDAS,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,30/04/2026,10,7,70,3,0,7,Não
+03/06/2026,Integra Compras,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,22/04/2026,47,19,40,17,5,19,Sim
+03/06/2026,SIGAP - API de Conformidade em Lote,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,10/02/2026,47,19,40,24,4,19,Não
+03/06/2026,Serpro Gestão de Saúde,Construção e Lançamento de Produtos de Parcerias,PRODUTO,Em Andamento,20/04/2026,56,22,39,31,3,22,Não
+03/06/2026,ColetAI,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,18/05/2026,10,2,20,7,1,2,Não
+03/06/2026,Serpro Pay,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,11/05/2026,56,8,14,31,14,8,Sim
+03/06/2026,PGRM - Painel de Inteligência Mineral para Municípios,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,12/01/2026,47,5,11,39,3,5,Não
+03/06/2026,Plataforma de Inteligência Tributária - PIT,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,23/04/2026,47,5,11,41,1,5,Não
+03/06/2026,Serpro Gestão Logística,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,15/04/2026,56,5,9,48,3,5,Não
+03/06/2026,Serpro Afinco,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,25/05/2026,56,4,7,51,1,4,Não
+03/06/2026,Gestão de Evidências Digitais,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,04/06/2026,56,3,5,52,1,3,Não
+03/06/2026,Pedágio Eletrônico Senatran,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,29/06/2026,47,2,4,43,2,2,Não
+03/06/2026,Recuperação de Ativos,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,05/06/2026,56,2,4,53,1,2,Não
+12/06/2026,IDAS,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,30/04/2026,10,7,70,3,0,7,Não
+12/06/2026,Integra Compras,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,05/06/2026,47,19,40,13,6,19,Sim
+12/06/2026,SIGAP - API de Conformidade em Lote,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,10/02/2026,47,19,40,24,4,19,Não
+12/06/2026,Serpro Gestão de Saúde,Construção e Lançamento de Produtos de Parcerias,PRODUTO,Em Andamento,20/04/2026,56,22,39,31,3,22,Não
+12/06/2026,ColetAI,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,18/05/2026,10,2,20,7,1,2,Não
+12/06/2026,Serpro Pay,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,11/05/2026,56,9,16,23,18,9,Sim
+12/06/2026,PGRM - Painel de Inteligência Mineral para Municípios,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,12/01/2026,47,5,11,39,3,5,Não
+12/06/2026,Plataforma de Inteligência Tributária - PIT,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,23/04/2026,47,5,11,41,1,5,Não
+12/06/2026,ConversAI Studio,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,16/07/2026,47,4,9,43,0,4,Não
+12/06/2026,Serpro Gestão Logística,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,15/04/2026,56,5,9,48,3,5,Não
+12/06/2026,Gestão de Evidências Digitais,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,04/06/2026,56,4,7,51,1,4,Não
+12/06/2026,Serpro Afinco,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,25/05/2026,56,4,7,51,1,4,Não
+12/06/2026,Pedágio Eletrônico Senatran,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,29/06/2026,47,3,6,43,1,3,Não
+12/06/2026,Recuperação de Ativos,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,05/06/2026,56,2,4,53,1,2,Não`;
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let rawRecords = [];
+let historicalDates = [];
+let currentViewMode = "cards";
+let collapsedModulesState = {};
+const TODAY = new Date(2026, 5, 12); // 12/06/2026
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastMessage').textContent = msg;
+    t.classList.remove('translate-y-20','opacity-0');
+    t.classList.add('translate-y-0','opacity-100');
+    setTimeout(() => { t.classList.add('translate-y-20','opacity-0'); t.classList.remove('translate-y-0','opacity-100'); }, 3000);
+}
+
+// ─── PARSER (suporta CSV com ; e aspas, e TXT com ,) ─────────────────────────
+function parseCSV(text) {
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if (lines.length <= 1) return [];
+
+    // Detectar separador: se a primeira linha tem ; usa ; senão ,
+    const sep = lines[0].includes(';') ? ';' : ',';
+
+    const stripQuotes = v => v.replace(/^"(.*)"$/, '$1').trim();
+    const normalizePendencia = v => {
+        const s = stripQuotes(v).trim();
+        if (s === 'Sim' || s === 'sim') return 'Sim';
+        if (s === 'Não' || s === 'nao' || s === 'Nao' || s === '0') return 'Não';
+        // valor numérico > 0 = Sim
+        const n = parseInt(s);
+        if (!isNaN(n)) return n > 0 ? 'Sim' : 'Não';
+        return 'Não';
+    };
+
+    const numericFields = ['Total_Tarefas','Tarefas_Concluidas','Percentual_Progresso','A_Fazer','Em_Andamento','Concluido'];
+    const headers = lines[0].split(sep).map(stripQuotes);
+    const items = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const cols = lines[i].split(sep);
+        const row = {};
+        headers.forEach((h, idx) => {
+            let v = cols[idx] !== undefined ? stripQuotes(cols[idx]) : '';
+            if (h === 'Pendencia_Externa') v = normalizePendencia(cols[idx] || '0');
+            else if (numericFields.includes(h)) v = parseInt(v) || 0;
+            row[h] = v;
+        });
+        items.push(row);
+    }
+    return items;
+}
+
+// ─── PROCESSAMENTO ────────────────────────────────────────────────────────────
+function processDataState(parsed) {
+    rawRecords = parsed;
+    const dates = new Set();
+    parsed.forEach(r => { if (r.Data_Coleta) dates.add(r.Data_Coleta); });
+    historicalDates = Array.from(dates).sort((a, b) => parseDateBR(a) - parseDateBR(b));
+    populatePeriodFilter();
+}
+
+function parseDateBR(str) {
+    if (!str) return 0;
+    const p = str.split('/');
+    return new Date(+p[2], +p[1]-1, +p[0]);
+}
+
+function isOverdue(previsao) {
+    const d = parseDateBR(previsao);
+    return d < TODAY;
+}
+
+function isNewProduct(productName) {
+    // Aparece apenas na última coleta (não estava na primeira)
+    const dates = [...new Set(rawRecords.filter(r => r.Nome_Produto === productName).map(r => r.Data_Coleta))];
+    return dates.length === 1 && dates[0] === historicalDates[historicalDates.length - 1];
+}
+
+function populatePeriodFilter() {
+    const sel = document.getElementById('filterPeriodo');
+    const prev = sel.value;
+    sel.innerHTML = '';
+    const latest = historicalDates[historicalDates.length - 1] || '';
+    const opt0 = document.createElement('option');
+    opt0.value = 'LATEST';
+    opt0.textContent = `Última Coleta (${latest})`;
+    sel.appendChild(opt0);
+    historicalDates.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d;
+        o.textContent = `Coleta de ${d}`;
+        sel.appendChild(o);
+    });
+    if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+    else sel.value = 'LATEST';
+}
+
+// ─── BREAKDOWN DE TAREFAS ─────────────────────────────────────────────────────
+function getBreakdown(p) {
+    return {
+        total:      p.Total_Tarefas    || 0,
+        concluidas: p.Concluido        || p.Tarefas_Concluidas || 0,
+        emAndamento:p.Em_Andamento     || 0,
+        aFazer:     p.A_Fazer          || 0,
+        pendentes:  p.Pendencia_Externa === 'Sim' ? Math.max(1, Math.round((p.Em_Andamento || 0) * 0.2)) : 0
+    };
+}
+
+// ─── SPARKLINE SVG ────────────────────────────────────────────────────────────
+function sparkline(productName, W = 110, H = 32) {
+    const recs = rawRecords.filter(r => r.Nome_Produto === productName)
+        .sort((a, b) => historicalDates.indexOf(a.Data_Coleta) - historicalDates.indexOf(b.Data_Coleta));
+    if (recs.length < 2) return '<span class="text-[10px] text-slate-600">—</span>';
+
+    const pts = recs.map((r, i) => ({
+        x: (i / (recs.length - 1)) * (W - 16) + 8,
+        y: H - (r.Percentual_Progresso / 100) * (H - 12) - 6,
+        pct: r.Percentual_Progresso,
+        dt: r.Data_Coleta
+    }));
+
+    const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const area = `${line} L ${pts[pts.length-1].x} ${H} L ${pts[0].x} ${H} Z`;
+
+    const dots = pts.map((p, i) => {
+        const r = i === pts.length - 1 ? 4 : 3;
+        const color = i === 0 ? '#64748b' : i === pts.length - 1 ? '#10b981' : '#3b82f6';
+        return `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}"><title>${p.dt}: ${p.pct}%</title></circle>`;
+    }).join('');
+
+    return `<svg width="${W}" height="${H}" class="overflow-visible inline-block">
+        <defs><linearGradient id="sg-${productName.replace(/\W/g,'')}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+        </linearGradient></defs>
+        <path d="${area}" fill="url(#sg-${productName.replace(/\W/g,'')})" />
+        <path d="${line}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        ${dots}
+    </svg>`;
+}
+
+// ─── ANÁLISE IA ───────────────────────────────────────────────────────────────
+function getAnalysisHTML(productName) {
+    const recs = rawRecords.filter(r => r.Nome_Produto === productName)
+        .sort((a, b) => historicalDates.indexOf(a.Data_Coleta) - historicalDates.indexOf(b.Data_Coleta));
+
+    if (recs.length < 2) return `
+        <div class="text-xs text-slate-400 p-3 bg-[#080f1e]/85 rounded-lg border border-[#1d2c47]/50 mt-3">
+            <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1 text-slate-500"></i>
+            Produto registrado apenas na coleta de <strong>${recs[0]?.Data_Coleta || '—'}</strong>.
+            Insira mais coletas para gerar análise comparativa.
+        </div>`;
+
+    const prev = getBreakdown(recs[recs.length - 2]);
+    const curr = getBreakdown(recs[recs.length - 1]);
+    const dC = curr.concluidas  - prev.concluidas;
+    const dE = curr.emAndamento - prev.emAndamento;
+    const dP = curr.pendentes   - prev.pendentes;
+    const dF = curr.aFazer      - prev.aFazer;
+
+    const logs = [];
+    if (dC > 0) logs.push(`<span class="text-emerald-400 font-semibold">+${dC} tarefa(s)</span> transitaram para <strong class="text-emerald-400">Feito</strong>.`);
+    if (dE > 0) logs.push(`<span class="text-blue-400 font-semibold">+${dE} tarefa(s)</span> entraram em execução ativa (<strong class="text-blue-400">Fazendo</strong>).`);
+    else if (dE < 0) logs.push(`<span class="text-slate-400 font-semibold">${Math.abs(dE)} tarefa(s)</span> saíram de "Fazendo" (concluídas ou bloqueadas).`);
+    if (dP > 0) logs.push(`<span class="text-amber-400 font-semibold">+${dP} impedimento(s)</span> externo(s) identificado(s) bloqueando a equipe.`);
+    else if (dP < 0) logs.push(`<span class="text-emerald-500 font-semibold">${Math.abs(dP)} pendência(s)</span> externa(s) resolvida(s) na janela.`);
+    if (dF < 0 && dC === 0 && dE === 0) logs.push(`<span class="text-indigo-400 font-semibold">${Math.abs(dF)} tarefa(s)</span> movidas de "Fazer" para execução.`);
+
+    const isBlocked = recs[recs.length-1].Pendencia_Externa === 'Sim';
+    let insight = '';
+    if (isBlocked) insight = '<strong>Recomendação:</strong> Fluxo bloqueado por dependência externa. Acione o comitê de integração para liberar as pendências e restabelecer a tração operacional.';
+    else if (dC > 1) insight = '<strong>Recomendação:</strong> Excelente velocidade de entrega. Mantenha o ritmo e puxe novas tarefas do backlog planejado.';
+    else if (dC > 0) insight = '<strong>Recomendação:</strong> Avanço incremental estável. Produto em fluxo regular sem bloqueios identificados.';
+    else if (dE > 0) insight = '<strong>Recomendação:</strong> WIP crescendo sem conclusões. Avalie se há impedimentos técnicos que estão travando a transição de "Fazendo" para "Feito".';
+    else insight = '<strong>Recomendação:</strong> Sem movimentações nesta janela. Recomenda-se alinhamento rápido com o responsável técnico para verificar impedimentos não registrados.';
+
+    const logItems = logs.map(l => `<li class="flex items-start gap-1.5 py-0.5"><span class="text-brand-400 mt-0.5 flex-shrink-0">•</span><span>${l}</span></li>`).join('');
+
+    return `<div class="mt-3 p-4 bg-[#080f1e]/85 rounded-xl border border-[#1d2c47]/70 space-y-3 text-xs slide-in">
+        <div class="flex items-center gap-1.5 border-b border-[#1d2c47]/40 pb-2">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span class="font-bold text-slate-200">Análise Comparativa de Fluxo</span>
+            <span class="text-slate-500 text-[10px] ml-auto">${recs[recs.length-2].Data_Coleta} → ${recs[recs.length-1].Data_Coleta}</span>
+        </div>
+        ${logs.length > 0 ? `<ul class="text-slate-300 space-y-1 pl-1">${logItems}</ul>` :
+            `<div class="text-slate-400 flex items-start gap-2"><span class="text-amber-500">⚠</span><span>Checklist sem alterações entre os períodos de coleta.</span></div>`}
+        <div class="pt-2 border-t border-[#1d2c47]/30 text-slate-400 italic text-[11px] leading-relaxed">${insight}</div>
+    </div>`;
+}
+
+function toggleAnalysis(name) {
+    const id   = `aia-${name.replace(/\W/g,'_')}`;
+    const btnId = `aib-${name.replace(/\W/g,'_')}`;
+    const el  = document.getElementById(id);
+    const btn = document.getElementById(btnId);
+    if (!el) return;
+    const hidden = el.classList.toggle('hidden');
+    if (btn) btn.innerHTML = hidden
+        ? `<span>Análise</span><i data-lucide="chevron-down" class="w-3 h-3"></i>`
+        : `<span>Recolher</span><i data-lucide="chevron-up" class="w-3 h-3"></i>`;
+    lucide.createIcons();
+}
+
+function toggleModule(name) {
+    const sid = name.replace(/\W/g,'_');
+    const el  = document.getElementById(`mc-${sid}`);
+    const ico = document.getElementById(`mch-${sid}`);
+    if (!el) return;
+    const hidden = el.classList.toggle('hidden');
+    if (ico) ico.classList.toggle('-rotate-90', hidden);
+    collapsedModulesState[name] = hidden;
+}
+
+// ─── PORTFOLIO OVERVIEW CHART ─────────────────────────────────────────────────
+function renderPortfolioOverview(products) {
+    const container = document.getElementById('portfolioOverviewContent');
+    if (!products.length) { container.innerHTML = ''; return; }
+
+    const sorted = [...products].sort((a, b) => b.Percentual_Progresso - a.Percentual_Progresso);
+
+    const bars = sorted.map(p => {
+        const b = getBreakdown(p);
+        const pF  = b.total > 0 ? (b.concluidas   / b.total * 100).toFixed(1) : 0;
+        const pFz = b.total > 0 ? (b.emAndamento   / b.total * 100).toFixed(1) : 0;
+        const pPe = b.total > 0 ? (b.pendentes     / b.total * 100).toFixed(1) : 0;
+        const pFr = b.total > 0 ? (b.aFazer        / b.total * 100).toFixed(1) : 0;
+        const ov  = isOverdue(p.Previsao_Termino);
+        const nw  = isNewProduct(p.Nome_Produto);
+        const nm  = p.Nome_Produto.length > 32 ? p.Nome_Produto.slice(0,30)+'…' : p.Nome_Produto;
+
+        return `<div class="flex items-center gap-3 group py-1.5">
+            <div class="flex items-center gap-1.5 w-52 flex-shrink-0">
+                <span class="text-[11px] text-slate-300 font-medium truncate leading-tight">${nm}</span>
+                ${ov ? '<span class="flex-shrink-0 text-[9px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded">ATRASADO</span>' : ''}
+                ${nw ? '<span class="flex-shrink-0 text-[9px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded">NOVO</span>' : ''}
+            </div>
+            <div class="flex-grow h-5 bg-[#080f1e] rounded-full overflow-hidden border border-[#1d2c47] flex" title="${p.Nome_Produto}: ${pF}% Feito · ${pFz}% Fazendo · ${pPe}% Pendente · ${pFr}% Fazer">
+                <div class="bg-emerald-500 h-full transition-all" style="width:${pF}%" title="Feito: ${b.concluidas}"></div>
+                <div class="bg-blue-500 h-full transition-all" style="width:${pFz}%" title="Fazendo: ${b.emAndamento}"></div>
+                <div class="bg-amber-500 h-full transition-all" style="width:${pPe}%" title="Pendente: ${b.pendentes}"></div>
+                <div class="bg-slate-700 h-full transition-all" style="width:${pFr}%" title="Fazer: ${b.aFazer}"></div>
+            </div>
+            <span class="w-10 text-right text-xs font-bold ${p.Percentual_Progresso >= 50 ? 'text-emerald-400' : p.Percentual_Progresso >= 25 ? 'text-amber-400' : 'text-rose-400'}">${p.Percentual_Progresso}%</span>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="flex items-center gap-4 mb-4 flex-wrap">
+            <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+                <span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span>Feito
+                <span class="w-3 h-3 rounded-sm bg-blue-500 inline-block ml-2"></span>Fazendo
+                <span class="w-3 h-3 rounded-sm bg-amber-500 inline-block ml-2"></span>Pendência
+                <span class="w-3 h-3 rounded-sm bg-slate-700 inline-block ml-2"></span>Fazer
+            </div>
+            <span class="text-[10px] text-slate-500 ml-auto">${products.length} produto(s) · ordenado por % progresso</span>
+        </div>
+        <div class="space-y-0.5">${bars}</div>`;
+}
+
+// ─── KPIs ─────────────────────────────────────────────────────────────────────
+function updateKPIs(activeList) {
+    document.getElementById('kpi-total').textContent     = activeList.length;
+    document.getElementById('kpi-internos').textContent  = activeList.filter(p => p.Tipo_Modulo.includes('Internos')).length;
+    document.getElementById('kpi-parcerias').textContent = activeList.filter(p => p.Tipo_Modulo.includes('Parcerias')).length;
+    document.getElementById('kpi-oport').textContent     = activeList.filter(p => p.Tipo_Modulo.includes('Oportunidades')).length;
+    document.getElementById('kpi-vencidos').textContent  = activeList.filter(p => isOverdue(p.Previsao_Termino)).length;
+    const avg = activeList.length ? Math.round(activeList.reduce((s, p) => s + p.Percentual_Progresso, 0) / activeList.length) : 0;
+    document.getElementById('kpi-avg-progress').textContent = avg + '%';
+}
+
+// ─── RENDER PRINCIPAL ─────────────────────────────────────────────────────────
+function renderDashboard() {
+    const modSel  = getModuloFilter();    // ['__ALL__'] ou array de valores
+    const penSel  = getPendenciaFilter(); // ['__ALL__'] ou array de valores
+    const perVal  = document.getElementById('filterPeriodo').value;
+
+    const latestDate  = historicalDates[historicalDates.length - 1] || '';
+    const activeDate  = perVal === 'LATEST' ? latestDate : perVal;
+    const dateRecords = rawRecords.filter(r => r.Data_Coleta === activeDate);
+
+    const filtered = dateRecords.filter(p => {
+        const okMod = modSel[0] === '__ALL__' || modSel.includes(p.Tipo_Modulo);
+        const okPen = penSel[0] === '__ALL__' || penSel.includes(p.Pendencia_Externa);
+        return okMod && okPen;
+    });
+
+    updateKPIs(filtered);
+    renderPortfolioOverview(filtered);
+    renderGroups(filtered);
+    lucide.createIcons();
+}
+
+// ─── RENDER GRUPOS ────────────────────────────────────────────────────────────
+function renderGroups(list) {
+    const container = document.getElementById('groupedSectionsContainer');
+    container.innerHTML = '';
+
+    if (!list.length) {
+        container.innerHTML = `<div class="bg-[#111c30] border border-[#1d2c47] rounded-xl p-12 text-center text-slate-500">
+            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-40"></i>
+            <p class="text-sm font-medium">Nenhum produto corresponde aos filtros selecionados.</p>
+        </div>`;
+        lucide.createIcons();
+        return;
+    }
+
+    const modConfig = {
+        'Construção e Lançamento de Produtos de Parcerias': { icon: 'handshake', color: 'purple',  label: 'Parceria' },
+        'Construção e Lançamento de Produtos Internos':     { icon: 'cpu',       color: 'blue',    label: 'Interno'  },
+        'Amadurecimento de Oportunidades':                  { icon: 'lightbulb', color: 'amber',   label: 'Oportunidade' }
+    };
+    const modOrder = [
+        'Construção e Lançamento de Produtos de Parcerias',
+        'Construção e Lançamento de Produtos Internos',
+        'Amadurecimento de Oportunidades'
+    ];
+
+    const grouped = {};
+    list.forEach(p => { if (!grouped[p.Tipo_Modulo]) grouped[p.Tipo_Modulo] = []; grouped[p.Tipo_Modulo].push(p); });
+
+    modOrder.forEach(mod => {
+        if (!grouped[mod]) return;
+        const prods = grouped[mod];
+        const cfg   = modConfig[mod] || { icon: 'layers', color: 'indigo', label: 'Módulo' };
+        const avg   = Math.round(prods.reduce((s,p) => s + p.Percentual_Progresso, 0) / prods.length);
+        const sid   = mod.replace(/\W/g,'_');
+        const collapsed = !!collapsedModulesState[mod];
+
+        const content = currentViewMode === 'cards'
+            ? renderCardsGroup(prods, cfg)
+            : renderTableGroup(prods, cfg);
+
+        container.insertAdjacentHTML('beforeend', `
+            <div class="bg-[#111c30] border border-[#1d2c47] rounded-xl shadow-lg overflow-hidden">
+                <div onclick="toggleModule('${mod}')" class="p-5 border-b border-[#1d2c47] bg-[#0c1424]/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer hover:bg-[#0c1424]/80 select-none transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-${cfg.color}-500/10 text-${cfg.color}-400 rounded-lg">
+                            <i data-lucide="${cfg.icon}" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-base flex items-center gap-2">
+                                ${mod}
+                                <i id="mch-${sid}" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform ${collapsed ? '-rotate-90' : ''}"></i>
+                            </h3>
+                            <p class="text-xs text-slate-400">${prods.length} produto(s) · ${prods.filter(p=>isOverdue(p.Previsao_Termino)).length} com previsão vencida</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4" onclick="event.stopPropagation()">
+                        <div class="text-right">
+                            <span class="block text-[10px] uppercase font-bold text-slate-500">Produtos</span>
+                            <span class="font-bold text-sm text-slate-200">${prods.length}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[10px] uppercase font-bold text-slate-500">Média</span>
+                            <span class="font-bold text-sm text-emerald-400">${avg}%</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="mc-${sid}" class="${collapsed ? 'hidden' : ''}">${content}</div>
+            </div>
+        `);
+    });
+
+    lucide.createIcons();
+}
+
+function renderCardsGroup(prods, cfg) {
+    return `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-5">
+        ${prods.map(p => renderCard(p, cfg)).join('')}
+    </div>`;
+}
+
+function renderCard(p, cfg) {
+    const b   = getBreakdown(p);
+    const sid = p.Nome_Produto.replace(/\W/g,'_');
+    const pctC = b.total > 0 ? Math.round(b.concluidas   / b.total * 100) : 0;
+    const pctE = b.total > 0 ? Math.round(b.emAndamento  / b.total * 100) : 0;
+    const pctA = b.total > 0 ? Math.round(b.aFazer       / b.total * 100) : 0;
+    const pctP = b.total > 0 ? Math.round(b.pendentes    / b.total * 100) : 0;
+
+    const ov = isOverdue(p.Previsao_Termino);
+    const nw = isNewProduct(p.Nome_Produto);
+
+    const recs = rawRecords.filter(r => r.Nome_Produto === p.Nome_Produto)
+        .sort((a, b) => historicalDates.indexOf(a.Data_Coleta) - historicalDates.indexOf(b.Data_Coleta));
+    const first = recs[0] ? getBreakdown(recs[0]) : null;
+    const dC = first ? b.concluidas   - first.concluidas   : 0;
+    const dE = first ? b.emAndamento  - first.emAndamento  : 0;
+
+    const evoBadge = dC > 0
+        ? `<span class="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg"><i data-lucide="trending-up" class="w-3 h-3"></i>+${dC} Feito</span>`
+        : `<span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-500 bg-slate-800 border border-slate-700/40 px-2 py-0.5 rounded-lg">✔ 0 Feito</span>`;
+
+    const wipBadge = dE > 0
+        ? `<span class="inline-flex items-center gap-0.5 text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-lg">+${dE} WIP</span>`
+        : dE < 0
+        ? `<span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-400 bg-slate-800 border border-slate-700/40 px-2 py-0.5 rounded-lg">${dE} WIP</span>`
+        : `<span class="inline-flex items-center gap-0.5 text-[10px] font-medium text-slate-600 bg-slate-800 border border-slate-700/30 px-2 py-0.5 rounded-lg">0 WIP</span>`;
+
+    return `<div id="card-${sid}" class="bg-[#0d1829] border-2 ${ov ? 'border-rose-500/30' : 'border-[#1d2c47]'} rounded-2xl p-5 flex flex-col gap-4 transition-all hover:border-brand-500/50">
+
+        <div>
+            <div class="flex items-start justify-between gap-2 mb-1">
+                <h4 class="text-sm font-bold text-white leading-snug">${p.Nome_Produto}</h4>
+                <button id="aib-${sid}" onclick="toggleAnalysis('${p.Nome_Produto}')"
+                    class="flex-shrink-0 flex items-center gap-1 text-[10px] bg-slate-800 hover:bg-slate-700 border border-[#1d2c47] text-slate-300 px-2 py-0.5 rounded-lg cursor-pointer font-semibold">
+                    <span>Análise</span><i data-lucide="chevron-down" class="w-3 h-3"></i>
+                </button>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-${cfg.color}-500/10 text-${cfg.color}-400 border border-${cfg.color}-500/20">${cfg.label}</span>
+                ${ov ? '<span class="text-[10px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i>Atrasado</span>' : ''}
+                ${nw ? '<span class="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full">✨ Novo</span>' : ''}
+                <span class="text-[10px] text-slate-500">${b.total} tarefas · Prev: ${p.Previsao_Termino}</span>
+            </div>
+
+            <div id="aia-${sid}" class="hidden">${getAnalysisHTML(p.Nome_Produto)}</div>
+        </div>
+
+        <!-- Ganho da semana + sparkline -->
+        <div class="p-3 bg-[#080f1e]/90 rounded-xl border border-[#1d2c47]/70 flex items-center justify-between gap-2">
+            <div class="flex flex-col gap-1">
+                <span class="text-[9px] uppercase font-extrabold text-slate-500 tracking-wider">Ganho da Semana</span>
+                <div class="flex flex-col gap-1">${evoBadge}${wipBadge}</div>
+            </div>
+            <div class="flex-grow flex justify-end items-center">${sparkline(p.Nome_Produto)}</div>
+        </div>
+
+        <!-- Barras de progresso -->
+        <div class="space-y-2.5">
+            ${[
+                ['Feito',     b.concluidas,    pctC, 'from-emerald-500 to-teal-400'],
+                ['Fazendo',   b.emAndamento,   pctE, 'from-blue-500 to-indigo-400'],
+                ['Fazer',     b.aFazer,        pctA, 'from-rose-500 to-red-400'],
+                ['Pendência', b.pendentes,     pctP, 'from-amber-500 to-orange-400'],
+            ].map(([lbl, val, pct, grad]) => `
+                <div>
+                    <div class="flex justify-between text-[11px] font-medium mb-1">
+                        <span class="text-slate-300">${lbl}</span>
+                        <span class="text-slate-500">${val} (${pct}%)</span>
+                    </div>
+                    <div class="w-full bg-[#080f1e] rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-gradient-to-r ${grad} h-full rounded-full" style="width:${pct}%"></div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+
+        <!-- Pills -->
+        <div class="flex items-center justify-between pt-3 border-t border-[#1d2c47]/50">
+            <div class="flex items-center gap-1.5 text-xs font-semibold">
+                <span class="flex items-center gap-1 bg-emerald-900/40 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>${b.concluidas}
+                </span>
+                <span class="flex items-center gap-1 bg-blue-900/30 text-blue-400 px-2.5 py-1 rounded-full border border-blue-500/20">
+                    <svg class="w-3 h-3 animate-spin" style="animation-duration:8s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>${b.emAndamento}
+                </span>
+                <span class="flex items-center gap-1 bg-rose-900/30 text-rose-400 px-2.5 py-1 rounded-full border border-rose-500/20">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>${b.aFazer}
+                </span>
+                <span class="flex items-center gap-1 bg-amber-900/30 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/20">
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${b.pendentes}
+                </span>
+            </div>
+            <span class="text-[10px] text-slate-600 font-bold uppercase">${p.Tipo_Produto}</span>
+        </div>
+    </div>`;
+}
+
+function renderTableGroup(prods, cfg) {
+    const rows = prods.map(p => {
+        const b   = getBreakdown(p);
+        const sid = p.Nome_Produto.replace(/\W/g,'_');
+        const ov  = isOverdue(p.Previsao_Termino);
+        const nw  = isNewProduct(p.Nome_Produto);
+
+        const recs = rawRecords.filter(r => r.Nome_Produto === p.Nome_Produto)
+            .sort((a, b) => historicalDates.indexOf(a.Data_Coleta) - historicalDates.indexOf(b.Data_Coleta));
+        const first = recs[0] ? getBreakdown(recs[0]) : null;
+        const dC = first ? b.concluidas - first.concluidas : 0;
+        const dE = first ? b.emAndamento - first.emAndamento : 0;
+
+        const pctC = b.total > 0 ? (b.concluidas   / b.total * 100) : 0;
+        const pctE = b.total > 0 ? (b.emAndamento  / b.total * 100) : 0;
+        const pctA = b.total > 0 ? (b.aFazer       / b.total * 100) : 0;
+        const pctP = b.total > 0 ? (b.pendentes    / b.total * 100) : 0;
+
+        return `<tr class="border-b border-[#1d2c47]/40 hover:bg-slate-900/30 transition-colors">
+            <td class="py-3 px-4">
+                <div class="flex flex-col gap-0.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-semibold text-slate-100">${p.Nome_Produto}</span>
+                        ${ov ? '<span class="text-[9px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded">ATRASADO</span>' : ''}
+                        ${nw ? '<span class="text-[9px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded">NOVO</span>' : ''}
+                        <button onclick="toggleAnalysis('${p.Nome_Produto}')" id="aib-${sid}"
+                            class="text-[10px] bg-slate-800 hover:bg-slate-700 border border-[#1d2c47] text-slate-300 px-2 py-0.5 rounded flex items-center gap-1 font-semibold">
+                            <span>Análise</span><i data-lucide="chevron-down" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                    <span class="text-[10px] text-slate-500">Prev: ${p.Previsao_Termino} · ${b.total} tarefas</span>
+                    <div id="aia-${sid}" class="hidden">${getAnalysisHTML(p.Nome_Produto)}</div>
+                </div>
+            </td>
+            <td class="py-3 px-4 text-center">${sparkline(p.Nome_Produto)}</td>
+            <td class="py-3 px-4 text-center">
+                <div class="flex flex-col items-center gap-1">
+                    <span class="font-bold text-xs ${p.Percentual_Progresso >= 50 ? 'text-emerald-400' : p.Percentual_Progresso >= 25 ? 'text-amber-400' : 'text-rose-400'}">${p.Percentual_Progresso}%</span>
+                    <div class="w-24 bg-[#080f1e] rounded-full h-1.5 overflow-hidden border border-[#1d2c47] flex">
+                        <div class="bg-emerald-500 h-full" style="width:${pctC}%"></div>
+                        <div class="bg-blue-500 h-full" style="width:${pctE}%"></div>
+                        <div class="bg-amber-500 h-full" style="width:${pctP}%"></div>
+                        <div class="bg-slate-700 h-full" style="width:${pctA}%"></div>
+                    </div>
+                </div>
+            </td>
+            <td class="py-3 px-4 text-center">
+                <div class="flex flex-col gap-1 items-center">
+                    ${dC > 0 ? `<span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">+${dC} Feito</span>` : '<span class="text-[10px] text-slate-600">— Feito</span>'}
+                    ${dE > 0 ? `<span class="text-[10px] font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">+${dE} WIP</span>` : dE < 0 ? `<span class="text-[10px] text-slate-400">${dE} WIP</span>` : '<span class="text-[10px] text-slate-600">— WIP</span>'}
+                </div>
+            </td>
+            <td class="py-3 px-4 text-center">
+                ${p.Pendencia_Externa === 'Sim'
+                    ? '<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 rounded-full"><span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>Sim</span>'
+                    : '<span class="text-[11px] text-slate-600 bg-slate-800/60 border border-slate-700/40 px-2.5 py-0.5 rounded-full">Não</span>'}
+            </td>
+        </tr>`;
+    }).join('');
+
+    return `<div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="border-b border-[#1d2c47] text-slate-400 text-[10px] uppercase tracking-wider bg-[#080f1e]/40">
+                    <th class="py-3 px-4">Produto</th>
+                    <th class="py-3 px-4 text-center">Evolução</th>
+                    <th class="py-3 px-4 text-center">Progresso</th>
+                    <th class="py-3 px-4 text-center">Ganho</th>
+                    <th class="py-3 px-4 text-center">Bloqueio</th>
+                </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+        </table>
+    </div>`;
+}
+
+// ─── PORTFOLIO OVERVIEW TOGGLE ───────────────────────────────────────────────
+function togglePortfolioOverview() {
+    const content = document.getElementById('portfolioOverviewContent');
+    const chevron = document.getElementById('portfolioChevron');
+    const hidden = content.classList.toggle('hidden');
+    chevron.classList.toggle('-rotate-90', hidden);
+}
+
+// ─── MULTI-SELECT HELPERS ─────────────────────────────────────────────────────
+// Returns array of selected values. If __ALL__ checked → returns ['__ALL__']
+function msGetValues(panelId) {
+    const panel = document.getElementById(panelId);
+    const boxes = [...panel.querySelectorAll('input[type=checkbox]')];
+    const allBox = boxes.find(b => b.value === '__ALL__');
+    if (allBox && allBox.checked) return ['__ALL__'];
+    return boxes.filter(b => b.value !== '__ALL__' && b.checked).map(b => b.value);
+}
+
+function msUpdateLabel(labelId, triggerId, values, allLabel, names) {
+    const label = document.getElementById(labelId);
+    const trigger = document.getElementById(triggerId);
+    if (values[0] === '__ALL__' || values.length === 0) {
+        label.textContent = allLabel;
+        trigger.classList.remove('active');
+        // remove badge if any
+        const b = trigger.querySelector('.ms-badge');
+        if (b) b.remove();
+    } else {
+        const short = values.map(v => names[v] || v).join(', ');
+        label.textContent = short.length > 28 ? short.slice(0,26)+'…' : short;
+        trigger.classList.add('active');
+        let b = trigger.querySelector('.ms-badge');
+        if (!b) { b = document.createElement('span'); b.className = 'ms-badge'; trigger.insertBefore(b, trigger.lastElementChild); }
+        b.textContent = values.length;
+    }
+}
+
+function msSetup(dropdownId, panelId, triggerId, labelId, allLabel, names, onChange) {
+    const trigger = document.getElementById(triggerId);
+    const panel   = document.getElementById(panelId);
+    const boxes   = [...panel.querySelectorAll('input[type=checkbox]')];
+    const allBox  = boxes.find(b => b.value === '__ALL__');
+    const optBoxes = boxes.filter(b => b.value !== '__ALL__');
+
+    // Toggle panel open/close
+    trigger.addEventListener('click', e => {
+        e.stopPropagation();
+        const isOpen = panel.classList.toggle('open');
+        trigger.classList.toggle('active', isOpen);
+        // close other open dropdowns
+        document.querySelectorAll('.ms-panel.open').forEach(p => {
+            if (p.id !== panelId) {
+                p.classList.remove('open');
+                document.getElementById(p.id.replace('Panel','Trigger'))?.classList.remove('active');
+            }
+        });
+    });
+
+    // Checkbox logic
+    allBox?.addEventListener('change', () => {
+        if (allBox.checked) optBoxes.forEach(b => { b.checked = false; b.closest('.ms-item').classList.remove('checked'); });
+        msUpdateLabel(labelId, triggerId, msGetValues(panelId), allLabel, names);
+        onChange();
+    });
+
+    optBoxes.forEach(box => {
+        box.addEventListener('change', () => {
+            if (box.checked) {
+                if (allBox) { allBox.checked = false; allBox.closest('.ms-item').classList.remove('checked'); }
+                box.closest('.ms-item').classList.add('checked');
+            } else {
+                box.closest('.ms-item').classList.remove('checked');
+                // if none checked, re-check ALL
+                if (optBoxes.every(b => !b.checked)) {
+                    if (allBox) { allBox.checked = true; allBox.closest('.ms-item').classList.add('checked'); }
+                }
+            }
+            msUpdateLabel(labelId, triggerId, msGetValues(panelId), allLabel, names);
+            onChange();
+        });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', () => {
+        panel.classList.remove('open');
+        if (msGetValues(panelId)[0] === '__ALL__') trigger.classList.remove('active');
+    });
+    panel.addEventListener('click', e => e.stopPropagation());
+}
+
+// ─── FILTER READERS ───────────────────────────────────────────────────────────
+function getModuloFilter() { return msGetValues('msModuloPanel'); }
+function getPendenciaFilter() { return msGetValues('msPendenciaPanel'); }
+
+// ─── EVENT LISTENERS ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('csvTextArea').value = defaultCSVData;
+    processDataState(parseCSV(defaultCSVData));
+
+    // Setup multi-selects
+    const moduloNames = {
+        'Construção e Lançamento de Produtos de Parcerias': 'Parcerias',
+        'Construção e Lançamento de Produtos Internos': 'Internos',
+        'Amadurecimento de Oportunidades': 'Oportunidades',
+    };
+    const pendenciaNames = { 'Sim': 'Com Bloqueio', 'Não': 'Sem Bloqueio' };
+
+    msSetup('msModulo','msModuloPanel','msModuloTrigger','msModuloLabel','Todos os Módulos', moduloNames, renderDashboard);
+    msSetup('msPendencia','msPendenciaPanel','msPendenciaTrigger','msPendenciaLabel','Todas as Pendências', pendenciaNames, renderDashboard);
+
+    renderDashboard();
+
+    document.getElementById('filterPeriodo').addEventListener('change', renderDashboard);
+
+    document.getElementById('viewModeCards').addEventListener('click', () => {
+        currentViewMode = 'cards';
+        document.getElementById('viewModeCards').className = 'px-3 py-1.5 rounded-md bg-brand-600 text-white font-semibold flex items-center gap-1.5';
+        document.getElementById('viewModeTable').className = 'px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 font-semibold flex items-center gap-1.5';
+        renderDashboard();
+    });
+
+    document.getElementById('viewModeTable').addEventListener('click', () => {
+        currentViewMode = 'table';
+        document.getElementById('viewModeTable').className = 'px-3 py-1.5 rounded-md bg-brand-600 text-white font-semibold flex items-center gap-1.5';
+        document.getElementById('viewModeCards').className = 'px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 font-semibold flex items-center gap-1.5';
+        renderDashboard();
+    });
+
+    document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+        // Reset ALL checkbox in both dropdowns
+        ['msModuloPanel','msPendenciaPanel'].forEach(panelId => {
+            const panel = document.getElementById(panelId);
+            panel.querySelectorAll('input[type=checkbox]').forEach(b => b.checked = b.value === '__ALL__');
+            panel.querySelectorAll('.ms-item').forEach(i => i.classList.remove('checked'));
+        });
+        msUpdateLabel('msModuloLabel','msModuloTrigger',['__ALL__'],'Todos os Módulos', moduloNames);
+        msUpdateLabel('msPendenciaLabel','msPendenciaTrigger',['__ALL__'],'Todas as Pendências', pendenciaNames);
+        document.getElementById('filterPeriodo').value = 'LATEST';
+        renderDashboard();
+        showToast('Filtros redefinidos.');
+    });
+
+    document.getElementById('resetDemoBtn').addEventListener('click', () => {
+        document.getElementById('csvTextArea').value = defaultCSVData;
+        processDataState(parseCSV(defaultCSVData));
+        renderDashboard();
+        showToast('Dados originais restaurados.');
+    });
+
+    const csvModal = document.getElementById('csvModal');
+    document.getElementById('importDataBtn').addEventListener('click', () => csvModal.classList.remove('hidden'));
+    ['closeModalBtn','cancelModalBtn'].forEach(id =>
+        document.getElementById(id).addEventListener('click', () => csvModal.classList.add('hidden')));
+
+    document.getElementById('saveCSVDataBtn').addEventListener('click', () => {
+        const txt = document.getElementById('csvTextArea').value;
+        try {
+            const parsed = parseCSV(txt);
+            if (!parsed.length) throw new Error();
+            processDataState(parsed);
+            renderDashboard();
+            csvModal.classList.add('hidden');
+            showToast('Dados atualizados com sucesso!');
+        } catch { showToast('Erro: verifique o formato do arquivo.'); }
+    });
+
+    document.getElementById('resetToDefaultCSV').addEventListener('click', () => {
+        document.getElementById('csvTextArea').value = defaultCSVData;
+        showToast('Dados restaurados.');
+    });
+});
+</script>
+</body>
+</html>
