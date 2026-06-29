@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checklist Digital Tracker v15 · SERPRO</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-base:   #EEF2FF;
+  --bg-card:   #FFFFFF;
+  --bg-elev:   #F2F6FF;
+  --bg-hdr:    rgba(255,255,255,0.97);
+  --bg-input:  #F5F8FF;
+  --bdr:       #C8D5F5;
+  --bdr-act:   #0033A0;
+  --fg:        #000D1F;
+  --fg-sec:    #1A3366;
+  --fg-muted:  #5070A0;
+  --shadow:    0 2px 24px rgba(0,51,160,.09);
+  --shadow-sm: 0 1px 10px rgba(0,51,160,.07);
+}
+html.dark {
+  --bg-base:   #00112E;
+  --bg-card:   #001F5A;
+  --bg-elev:   #002370;
+  --bg-hdr:    rgba(0,17,46,0.97);
+  --bg-input:  #001540;
+  --bdr:       #1E4CB0;
+  --bdr-act:   #00CCFF;
+  --fg:        #EDF2FF;
+  --fg-sec:    #B8D0F8;
+  --fg-muted:  #7A9ECC;
+  --shadow:    0 2px 24px rgba(0,0,0,.55);
+  --shadow-sm: 0 1px 10px rgba(0,0,0,.45);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Open Sans',sans-serif;background:var(--bg-base);color:var(--fg);min-height:100vh;transition:background .3s,color .3s}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#0033A0;border-radius:4px}
+.t-card  {background:var(--bg-card);border-color:var(--bdr);box-shadow:var(--shadow-sm)}
+.t-elev  {background:var(--bg-elev);border-color:var(--bdr)}
+.t-hdr   {background:var(--bg-hdr);border-color:var(--bdr)}
+.t-input {background:var(--bg-input);border-color:var(--bdr);color:var(--fg)}
+.t-bdr   {border-color:var(--bdr)}
+.t-fg    {color:var(--fg)}
+.t-fgs   {color:var(--fg-sec)}
+.t-fgm   {color:var(--fg-muted)}
+.t-div   {border-color:var(--bdr)}
+@keyframes evo-glow  {0%,100%{box-shadow:0 0 0 0 rgba(0,204,153,0)}50%{box-shadow:0 0 14px 4px rgba(0,204,153,.18)}}
+@keyframes stall-dim {0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes arrow-up  {0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes slide-in  {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.evo-glow  {animation:evo-glow 2s ease-in-out infinite}
+.stall-dim {animation:stall-dim 2.4s ease-in-out infinite}
+.arrow-up  {animation:arrow-up 1s ease-in-out infinite;display:inline-block}
+.slide-in  {animation:slide-in .2s ease forwards}
+/* mobile filter drawer */
+@media(max-width:767px){
+  #toolbar{display:none;position:fixed;top:70px;left:0;right:0;z-index:35;border-radius:0 0 16px 16px;border-left:none!important;border-right:none!important;border-top:none!important;margin:0!important}
+  #toolbar.mob-open{display:block;animation:slide-in .2s ease forwards}
+  #filterBackdrop{display:none;position:fixed;inset:0;z-index:34;background:rgba(0,0,0,.3)}
+  #filterBackdrop.mob-open{display:block}
+  #btnFilterMobile{display:flex}
+  /* cabeçalho de seção no mobile */
+  .sec-hdr{flex-direction:column!important;align-items:flex-start!important;gap:10px!important;cursor:default!important}
+  .sec-left{width:100%!important}
+  .sec-left h3{font-size:16px!important;font-weight:800!important;color:var(--fg)!important}
+  .sec-tiles{width:100%!important;justify-content:space-between!important}
+  .sec-vm{display:none!important}
+}
+@media(min-width:768px){
+  #toolbar{display:block!important}
+  #btnFilterMobile{display:none!important}
+}
+/* multi-select */
+.ms-drop{position:relative;user-select:none}
+.ms-trg{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;border:1px solid;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;transition:border-color .15s}
+.ms-trg:hover,.ms-trg.open{border-color:#0033A0}
+.ms-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.ms-arr{flex-shrink:0;transition:transform .2s}
+.ms-trg.open .ms-arr{transform:rotate(180deg)}
+.ms-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;min-width:240px;border:1px solid;border-radius:10px;padding:4px 0;z-index:100;background:var(--bg-card);border-color:var(--bdr);box-shadow:var(--shadow)}
+.ms-panel.open{display:block}
+.ms-item{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:12px;cursor:pointer;transition:background .1s;color:var(--fg-muted)}
+.ms-item:hover{background:var(--bg-elev);color:var(--fg)}
+.ms-item input[type=checkbox]{accent-color:#0033A0;width:14px;height:14px;cursor:pointer;flex-shrink:0}
+.ms-item.sel{color:#0033A0;font-weight:700}
+html.dark .ms-item.sel{color:#00CCFF}
+.ms-div{height:1px;margin:4px 0;background:var(--bdr)}
+.ms-bdg{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 4px;background:#0033A0;color:#fff;border-radius:99px;font-size:9px;font-weight:800}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="t-hdr border-b sticky top-0 z-40 backdrop-blur px-5 py-3.5" style="box-shadow:var(--shadow)">
+  <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="p-2.5 rounded-xl border t-bdr t-elev">
+        <i data-lucide="layout-dashboard" class="w-5 h-5 text-[#0033A0]"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight t-fg flex items-center gap-2">
+          Checklist Digital Tracker
+          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border border-[#00CC99]/40 text-[#00CC99]" style="background:rgba(0,204,153,.09)">v15</span>
+        </h1>
+        <p class="text-[10px] t-fgm">DINIT/SUNIN/INENG/INGPP · SERPRO</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="hidden md:flex items-center gap-1.5 text-xs t-fgm">
+        <i data-lucide="calendar" class="w-4 h-4"></i>
+        Coleta: <strong class="t-fgs" id="headerDate">—</strong>
+      </span>
+      <button id="btnFilterMobile" onclick="toggleFilterMobile()" title="Filtros"
+        class="relative p-2.5 rounded-xl border t-bdr t-elev t-fgm hover:border-[#0033A0] hover:text-[#0033A0] transition-all" style="display:none">
+        <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+        <span id="filterBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 text-[9px] font-bold rounded-full flex items-center justify-center text-white" style="background:#0033A0;line-height:1"></span>
+      </button>
+      <button id="btnTheme" class="p-2.5 rounded-xl border t-bdr t-elev t-fgm hover:border-[#0033A0] hover:text-[#0033A0] transition-all">
+        <i data-lucide="moon" id="icoMoon" class="w-4 h-4"></i>
+        <i data-lucide="sun"  id="icoSun"  class="w-4 h-4 hidden"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-6">
+
+  <!-- TOOLBAR: período + filtros (sticky abaixo do header) -->
+  <div id="toolbar" class="t-card border rounded-2xl px-4 py-3 sticky z-30" style="box-shadow:var(--shadow);top:72px">
+    <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+      <!-- Period pills (renderizado dinamicamente) -->
+      <div id="periodBar" class="flex items-center gap-2 flex-wrap"></div>
+      <div class="hidden lg:block w-px self-stretch t-div border-l mx-1"></div>
+      <!-- Filtros -->
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 lg:ml-auto">
+        <div class="ms-drop w-full sm:w-44" id="msModulo">
+          <div class="ms-trg t-input" id="msModuloTrigger">
+            <span class="ms-lbl t-fg" id="msModuloLabel">Todos os Módulos</span>
+            <svg class="ms-arr w-4 h-4 flex-shrink-0 t-fgm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="ms-panel" id="msModuloPanel">
+            <label class="ms-item"><input type="checkbox" value="__ALL__"> Todos os Módulos</label>
+            <div class="ms-div"></div>
+            <label class="ms-item sel"><input type="checkbox" value="Construção e Lançamento de Produtos de Parcerias" checked> Parcerias</label>
+            <label class="ms-item sel"><input type="checkbox" value="Construção e Lançamento de Produtos Internos" checked> Internos</label>
+            <label class="ms-item"><input type="checkbox" value="Amadurecimento de Oportunidades"> Oportunidades</label>
+          </div>
+        </div>
+        <div class="ms-drop w-full sm:w-44" id="msPend">
+          <div class="ms-trg t-input" id="msPendTrigger">
+            <span class="ms-lbl t-fg" id="msPendLabel">Todas as Pendências</span>
+            <svg class="ms-arr w-4 h-4 flex-shrink-0 t-fgm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="ms-panel" id="msPendPanel">
+            <label class="ms-item sel"><input type="checkbox" value="__ALL__" checked> Todas as Pendências</label>
+            <div class="ms-div"></div>
+            <label class="ms-item"><input type="checkbox" value="Sim"> Com Pendência Externa</label>
+            <label class="ms-item"><input type="checkbox" value="Não"> Sem Pendência Externa</label>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div class="t-elev border rounded-xl p-1 flex items-center gap-0.5">
+            <button id="btnCards" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-[#0033A0] text-white transition-all">
+              <i data-lucide="layout-grid" class="w-4 h-4"></i>Cards
+            </button>
+            <button id="btnTable" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold t-fgm hover:t-fg transition-all">
+              <i data-lucide="table" class="w-4 h-4"></i>Tabela
+            </button>
+          </div>
+          <button id="btnClear" title="Limpar filtros" class="p-2.5 rounded-xl border t-bdr t-elev t-fgm hover:border-[#0033A0] hover:text-[#0033A0] transition-all">
+            <i data-lucide="eraser" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <select id="filterPeriodo" class="hidden"></select>
+  </div>
+  <div id="filterBackdrop" onclick="toggleFilterMobile()"></div>
+
+  <!-- DESTAQUES DA COLETA (movido para o lugar dos KPIs) -->
+  <div>
+    <div class="flex items-center gap-2 pb-2 border-b t-div mb-3">
+      <i data-lucide="star" class="w-4 h-4 text-[#0033A0]"></i>
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-[#0033A0] flex-grow">Destaques da Coleta</h2>
+      <span id="hlDate" class="text-[10px] font-semibold t-fgm flex items-center gap-1">
+        <i data-lucide="calendar" class="w-3 h-3"></i><span id="hlDateTxt">—</span>
+      </span>
+    </div>
+    <div id="highlightsContent" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+  </div>
+
+  <!-- VISÃO GERAL: Portfólio (KPIs integrados + breakdown por produto) -->
+  <div class="t-card border rounded-2xl p-5" style="box-shadow:var(--shadow)">
+    <div class="flex items-center gap-3 pb-3 border-b t-div mb-4">
+      <i data-lucide="bar-chart-horizontal" class="w-4 h-4 text-[#0033A0]"></i>
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-[#0033A0] flex-grow">Visão Geral: Portfólio de Construção e Lançamento de Produtos</h2>
+      <button id="btnPO" onclick="togglePO()" class="flex items-center gap-1.5 text-[11px] font-semibold t-fgm hover:text-[#0033A0] border t-bdr t-elev rounded-lg px-2.5 py-1 transition-all">
+        <span id="poVM">Ver Menos</span>
+        <i data-lucide="chevron-down" id="poChev" class="w-3.5 h-3.5 transition-transform duration-200"></i>
+      </button>
+    </div>
+    <div class="flex flex-col xl:flex-row gap-5">
+      <!-- Portfólio -->
+      <div class="flex-grow">
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="pie-chart" class="w-4 h-4 text-[#0033A0]"></i>
+          <h2 class="text-[10px] font-bold uppercase tracking-widest text-[#0033A0]">Métricas do Portfólio</h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="t-elev border rounded-xl p-4 text-center hover:border-[#0033A0]/50 transition-all">
+            <i data-lucide="layers" class="w-6 h-6 mx-auto mb-1 text-[#0033A0]"></i>
+            <span id="k-total" class="block text-2xl font-extrabold text-[#0033A0]">—</span>
+            <span class="text-[9px] font-bold t-fgm uppercase tracking-wider">Total</span>
+          </div>
+          <div class="t-elev border rounded-xl p-4 text-center hover:border-[#00CCFF]/40 transition-all">
+            <i data-lucide="cpu" class="w-6 h-6 mx-auto mb-1 text-[#00CCFF]"></i>
+            <span id="k-int" class="block text-2xl font-extrabold text-[#00CCFF]">—</span>
+            <span class="text-[9px] font-bold t-fgm uppercase tracking-wider">Internos</span>
+          </div>
+          <div class="t-elev border rounded-xl p-4 text-center hover:border-[#0033A0]/40 transition-all">
+            <i data-lucide="handshake" class="w-6 h-6 mx-auto mb-1 text-[#0033A0]"></i>
+            <span id="k-par" class="block text-2xl font-extrabold text-[#0033A0]">—</span>
+            <span class="text-[9px] font-bold t-fgm uppercase tracking-wider">Parcerias</span>
+          </div>
+          <div class="t-elev border rounded-xl p-4 text-center hover:border-[#FFCC00]/40 transition-all">
+            <i data-lucide="lightbulb" class="w-6 h-6 mx-auto mb-1 text-[#FFCC00]"></i>
+            <span id="k-opp" class="block text-2xl font-extrabold text-[#FFCC00]">—</span>
+            <span class="text-[9px] font-bold t-fgm uppercase tracking-wider">Oportunidades</span>
+          </div>
+        </div>
+      </div>
+      <div class="hidden xl:block w-px t-div border-l self-stretch"></div>
+      <div class="block xl:hidden h-px t-div border-t"></div>
+      <!-- Andamento dos Checklists — 4 cards -->
+      <div class="xl:w-[420px] flex-shrink-0">
+        <div class="flex items-center gap-2 mb-3">
+          <i data-lucide="activity" class="w-4 h-4 text-[#0033A0]"></i>
+          <h2 class="text-[10px] font-bold uppercase tracking-widest text-[#0033A0]">Andamento dos Checklists</h2>
+        </div>
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          <div class="t-elev border rounded-xl p-4 text-center hover:border-[#00CC99]/50 transition-all">
+            <i data-lucide="trending-up" class="w-6 h-6 mx-auto mb-1 text-[#00CC99]"></i>
+            <span id="k-evol" class="block text-2xl font-extrabold text-[#00CC99]">—</span>
+            <span class="text-[9px] font-bold t-fgm uppercase tracking-wider">Evoluindo</span>
+          </div>
+          <div class="t-elev border rounded-xl p-4 text-center hover:border-[#FFCC00]/40 transition-all">
+            <i data-lucide="pause-circle" class="w-6 h-6 mx-auto mb-1 text-[#FFCC00]"></i>
+            <span id="k-stall" class="block text-2xl font-extrabold text-[#FFCC00]">—</span>
+            <span class="text-[9px] font-bold t-fgm uppercase tracking-wider">Parados</span>
+          </div>
+          <div class="t-elev border rounded-xl p-4 text-center hover:border-[#00CCFF]/40 transition-all">
+            <i data-lucide="sparkles" class="w-6 h-6 mx-auto mb-1 text-[#00CCFF]"></i>
+            <span id="k-novos" class="block text-2xl font-extrabold text-[#00CCFF]">—</span>
+            <span class="text-[9px] font-bold t-fgm uppercase tracking-wider">Novos</span>
+          </div>
+          <div class="t-elev border rounded-xl p-4 text-center hover:border-[#0033A0]/30 transition-all">
+            <i data-lucide="calendar-check" class="w-6 h-6 mx-auto mb-1 text-[#0033A0]"></i>
+            <span id="k-coletas" class="block text-2xl font-extrabold text-[#0033A0]">—</span>
+            <span class="text-[9px] font-bold t-fgm uppercase tracking-wider">Coletas</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Breakdown por produto (colapsável, inicia expandido) -->
+    <div id="poContent" class="overflow-x-auto mt-5 pt-5 border-t t-div"></div>
+  </div>
+
+  <!-- GROUPS -->
+  <div id="groupsContainer" class="space-y-6"></div>
+
+</main>
+
+<div id="toast" class="fixed bottom-5 right-5 z-50 t-card border t-bdr px-4 py-3 rounded-xl flex items-center gap-2.5 max-w-xs translate-y-16 opacity-0 transition-all duration-300 pointer-events-none" style="box-shadow:var(--shadow)">
+  <i data-lucide="check-circle-2" class="w-4 h-4 text-[#00CC99] flex-shrink-0"></i>
+  <p id="toastMsg" class="text-xs t-fgs"></p>
+</div>
+
+<footer class="border-t t-div py-4 px-6 text-center text-[10px] t-fgm">
+  © 2026 · Checklist Digital Tracker <strong class="text-[#0033A0]">v15</strong> · DINIT/SUNIN/INENG/INGPP — SERPRO
+</footer>
+
+<script>
+/* ── DATA ────────────────────────────────────────────────────────────────── */
+const CSV = `Data_Coleta,Nome_Produto,Tipo_Modulo,Tipo_Produto,Status_Andamento,Previsao_Termino,Total_Tarefas,Tarefas_Concluidas,Percentual_Progresso,A_Fazer,Em_Andamento,Concluido,Pendencia_Externa,Nao_se_Aplica
+03/06/2026,IDAS,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,30/04/2026,10,7,70,3,0,7,Não,0
+03/06/2026,Integra Compras,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,22/04/2026,47,19,40,17,5,19,Sim,0
+03/06/2026,SIGAP - API de Conformidade em Lote,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,10/02/2026,47,19,40,24,4,19,Não,0
+03/06/2026,Serpro Gestão de Saúde,Construção e Lançamento de Produtos de Parcerias,PRODUTO,Em Andamento,20/04/2026,56,22,39,31,3,22,Não,0
+03/06/2026,ColetAI,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,18/05/2026,10,2,20,7,1,2,Não,0
+03/06/2026,Serpro Pay,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,11/05/2026,56,8,14,31,14,8,Sim,0
+03/06/2026,PGRM - Painel de Inteligência Mineral para Municípios,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,12/01/2026,47,5,11,39,3,5,Não,0
+03/06/2026,Plataforma de Inteligência Tributária - PIT,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,23/04/2026,47,5,11,41,1,5,Não,0
+03/06/2026,Serpro Gestão Logística,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,15/04/2026,56,5,9,48,3,5,Não,0
+03/06/2026,Serpro Afinco,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,25/05/2026,56,4,7,51,1,4,Não,0
+03/06/2026,Gestão de Evidências Digitais,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,04/06/2026,56,3,5,52,1,3,Não,0
+03/06/2026,Pedágio Eletrônico Senatran,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,29/06/2026,47,2,4,43,2,2,Não,0
+03/06/2026,Recuperação de Ativos,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,05/06/2026,56,2,4,53,1,2,Não,0
+12/06/2026,IDAS,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,30/04/2026,10,7,70,3,0,7,Não,0
+12/06/2026,Integra Compras,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,05/06/2026,47,19,40,13,6,19,Sim,0
+12/06/2026,SIGAP - API de Conformidade em Lote,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,10/02/2026,47,19,40,24,4,19,Não,0
+12/06/2026,Serpro Gestão de Saúde,Construção e Lançamento de Produtos de Parcerias,PRODUTO,Em Andamento,20/04/2026,56,22,39,31,3,22,Não,0
+12/06/2026,ColetAI,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,18/05/2026,10,2,20,7,1,2,Não,0
+12/06/2026,Serpro Pay,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,11/05/2026,56,9,16,23,18,9,Sim,0
+12/06/2026,PGRM - Painel de Inteligência Mineral para Municípios,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,12/01/2026,47,5,11,39,3,5,Não,0
+12/06/2026,Plataforma de Inteligência Tributária - PIT,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,23/04/2026,47,5,11,41,1,5,Não,0
+12/06/2026,ConversAI Studio,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,16/07/2026,47,4,9,43,0,4,Não,0
+12/06/2026,Serpro Gestão Logística,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,15/04/2026,56,5,9,48,3,5,Não,0
+12/06/2026,Gestão de Evidências Digitais,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,04/06/2026,56,4,7,51,1,4,Não,0
+12/06/2026,Serpro Afinco,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,25/05/2026,56,4,7,51,1,4,Não,0
+12/06/2026,Pedágio Eletrônico Senatran,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,29/06/2026,47,3,6,43,1,3,Não,0
+12/06/2026,Recuperação de Ativos,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,05/06/2026,56,2,4,53,1,2,Não,0
+19/06/2026,IDAS,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,30/04/2026,10,7,70,3,0,7,Não,0
+19/06/2026,Integra Compras,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,11/03/2026,47,28,60,7,10,24,Sim,4
+19/06/2026,Serpro Pay,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,27/04/2026,56,23,41,16,16,16,Sim,7
+19/06/2026,SIGAP - API de Conformidade em Lote,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,29/12/2025,47,19,40,24,4,19,Não,0
+19/06/2026,Serpro Gestão de Saúde,Construção e Lançamento de Produtos de Parcerias,PRODUTO,Em Andamento,13/03/2026,56,22,39,31,3,22,Não,0
+19/06/2026,Pedágio Eletrônico Senatran,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,15/05/2026,47,10,21,33,4,9,Não,1
+19/06/2026,ColetAI,Amadurecimento de Oportunidades,PROPOSTA,Em Andamento,12/05/2026,10,2,20,7,1,2,Não,0
+19/06/2026,PGRM - Painel de Inteligência Mineral para Municípios,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,28/11/2025,47,5,11,39,3,5,Não,0
+19/06/2026,Plataforma de Inteligência Tributária - PIT,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,11/03/2026,47,5,11,41,1,5,Não,0
+19/06/2026,ConversAI Studio,Construção e Lançamento de Produtos Internos,PROPOSTA,Em Andamento,09/06/2026,47,4,9,43,0,4,Não,0
+19/06/2026,Serpro Afinco,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,27/04/2026,56,5,9,50,1,5,Não,0
+19/06/2026,Serpro Gestão Logística,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,31/03/2026,56,5,9,48,3,5,Não,0
+19/06/2026,Câmeras de Vigilância e Gestão de Evidências,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,15/05/2026,56,3,5,47,6,3,Não,0
+19/06/2026,Recuperação de Ativos,Construção e Lançamento de Produtos de Parcerias,PROPOSTA,Em Andamento,18/05/2026,56,3,5,53,0,3,Não,0
+28/06/2026,IDAS,Amadurecimento de Oportunidades,Proposta de Produto,Em Andamento,24/04/2026,10,7,70,3,0,7,Não,0
+28/06/2026,Integra Compras,Construção e Lançamento de Produtos Internos,Proposta de Produto,Em Andamento,11/03/2026,47,28,60,6,11,24,Sim,4
+28/06/2026,Serpro Pay,Construção e Lançamento de Produtos de Parcerias,Proposta de Produto,Em Andamento,27/04/2026,56,29,52,15,11,22,Sim,7
+28/06/2026,SIGAP - API de Conformidade em Lote,Construção e Lançamento de Produtos Internos,Proposta de Produto,Em Andamento,29/12/2025,47,19,40,24,4,19,Não,0
+28/06/2026,Serpro Gestão de Saúde,Construção e Lançamento de Produtos de Parcerias,Produto Lançado,Em Andamento,13/03/2026,56,22,39,31,3,22,Não,0
+28/06/2026,Pedágio Eletrônico Senatran,Construção e Lançamento de Produtos Internos,Proposta de Produto,Em Andamento,15/05/2026,47,10,21,33,4,9,Não,1
+28/06/2026,ColetAI,Amadurecimento de Oportunidades,Proposta de Produto,Em Andamento,12/05/2026,10,2,20,7,1,2,Não,0
+28/06/2026,Serpro Afinco,Construção e Lançamento de Produtos de Parcerias,Proposta de Produto,Em Andamento,27/04/2026,56,8,14,46,2,7,Não,1
+28/06/2026,PGRM - Painel de Inteligência Mineral para Municípios,Construção e Lançamento de Produtos Internos,Proposta de Produto,Em Andamento,28/11/2025,47,5,11,39,3,5,Não,0
+28/06/2026,Plataforma de Inteligência Tributária - PIT,Construção e Lançamento de Produtos Internos,Proposta de Produto,Em Andamento,11/03/2026,47,5,11,41,1,5,Não,0
+28/06/2026,Câmeras de Vigilância e Gestão de Evidências,Construção e Lançamento de Produtos de Parcerias,Proposta de Produto,Em Andamento,15/05/2026,56,5,9,44,7,3,Não,2
+28/06/2026,Recuperação de Ativos,Construção e Lançamento de Produtos de Parcerias,Proposta de Produto,Em Andamento,18/05/2026,56,5,9,48,3,4,Não,1
+28/06/2026,Serpro Gestão Logística,Construção e Lançamento de Produtos de Parcerias,Proposta de Produto,Em Andamento,31/03/2026,56,5,9,48,3,5,Não,0
+28/06/2026,Serpro Nexo,Construção e Lançamento de Produtos Internos,Proposta de Produto,Em Andamento,09/06/2026,47,4,9,43,0,4,Não,0
+28/06/2026,Cidadão Digital,Construção e Lançamento de Produtos de Parcerias,Proposta de Produto,Em Andamento,25/06/2026,56,1,2,52,3,1,Não,0
+28/06/2026,Transfere Gov API,Amadurecimento de Oportunidades,Proposta de Produto,Em Andamento,22/06/2026,10,0,0,10,0,0,Não,0`;
+
+/* ── STATE ───────────────────────────────────────────────────────────────── */
+let rawRecords = [], historicalDates = [], viewMode = 'cards', collapsedMods = {};
+
+/* ── TOAST ───────────────────────────────────────────────────────────────── */
+function toast(msg) {
+  const t=document.getElementById('toast');
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.replace('translate-y-16','translate-y-0'); t.classList.replace('opacity-0','opacity-100');
+  setTimeout(()=>{t.classList.replace('translate-y-0','translate-y-16');t.classList.replace('opacity-100','opacity-0');},3000);
+}
+
+/* ── PRODUTOS RENOMEADOS ─────────────────────────────────────────────────── */
+/* nome antigo -> nome canônico (mesmo produto; mantém histórico unificado) */
+const NAME_ALIASES = {
+  'ConversAI Studio': 'Serpro Nexo'
+};
+const FORMER_NAME = {};
+Object.entries(NAME_ALIASES).forEach(([oldN,newN])=>{FORMER_NAME[newN]=oldN;});
+
+/* ── PARSER ──────────────────────────────────────────────────────────────── */
+function parseCSV(txt) {
+  const lines=txt.trim().split('\n').filter(l=>l.trim()); if(lines.length<=1) return [];
+  const sep=lines[0].includes(';')?';':',';
+  const sq=v=>v.replace(/^"(.*)"$/,'$1').trim();
+  const numF=['Total_Tarefas','Tarefas_Concluidas','Percentual_Progresso','A_Fazer','Em_Andamento','Concluido','Nao_se_Aplica'];
+  const hdrs=lines[0].split(sep).map(sq);
+  return lines.slice(1).filter(l=>l.trim()).map(line=>{
+    const cols=line.split(sep),row={};
+    hdrs.forEach((h,i)=>{
+      let v=cols[i]!==undefined?sq(cols[i]):'';
+      if(h==='Pendencia_Externa'){const s=v.trim();v=(s==='Sim'||s==='sim'||parseInt(s)>0)?'Sim':'Não';}
+      else if(numF.includes(h)) v=parseInt(v)||0;
+      row[h]=v;
+    });
+    if(NAME_ALIASES[row.Nome_Produto]){row._NomeAntigo=row.Nome_Produto;row.Nome_Produto=NAME_ALIASES[row.Nome_Produto];}
+    return row;
+  });
+}
+
+function parseBR(s){if(!s)return 0;const p=s.split('/');return new Date(+p[2],+p[1]-1,+p[0]);}
+
+function processData(parsed) {
+  rawRecords=parsed;
+  const ds=new Set(); parsed.forEach(r=>{if(r.Data_Coleta)ds.add(r.Data_Coleta);});
+  historicalDates=[...ds].sort((a,b)=>parseBR(a)-parseBR(b));
+  buildPeriodo();
+  document.getElementById('k-coletas').textContent = historicalDates.length;
+}
+
+function buildPeriodo() {
+  const sel=document.getElementById('filterPeriodo');
+  const prev=sel.value; sel.innerHTML='';
+  historicalDates.forEach(d=>{
+    const o=document.createElement('option');o.value=d;o.textContent=`Coleta de ${d}`;sel.appendChild(o);
+  });
+  if(prev&&[...sel.options].some(o=>o.value===prev)) sel.value=prev;
+  else sel.selectedIndex=sel.options.length-1;
+  updateNavBtns();
+  document.getElementById('headerDate').textContent=sel.value;
+  buildPeriodBar();
+}
+
+/* Janela fixa: sempre a coleta mais atual + as 3 anteriores (até 4 datas). */
+function visibleDates(){ return historicalDates.slice(-4); }
+
+function updateNavBtns() {
+  const bp=document.getElementById('btnPrev'), bn=document.getElementById('btnNext');
+  if(!bp||!bn) return; // botões de nav antigos foram removidos na toolbar v10
+  const sel=document.getElementById('filterPeriodo');
+  bp.disabled=sel.selectedIndex===0;
+  bn.disabled=sel.selectedIndex===sel.options.length-1;
+}
+
+function buildPeriodBar() {
+  const bar=document.getElementById('periodBar');
+  const asOf=document.getElementById('filterPeriodo').value;
+  const vis=visibleDates();
+  const idx=vis.indexOf(asOf);
+  bar.innerHTML=`
+    <span class="text-[10px] font-bold t-fgm uppercase tracking-widest mr-1">Coleta:</span>
+    <button onclick="navigatePeriodo(-1)" ${idx<=0?'disabled':''} class="p-1.5 rounded-lg border t-bdr t-elev t-fgm hover:border-[#0033A0] hover:text-[#0033A0] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+      <i data-lucide="chevron-left" class="w-4 h-4"></i>
+    </button>
+    ${vis.map(d=>{
+      const active=d===asOf;
+      return `<button onclick="setActivePeriodo('${d}')"
+        class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${active
+          ? 'bg-[#0033A0] text-white border-[#0033A0]'
+          : 'border t-bdr t-fgm hover:border-[#0033A0] hover:text-[#0033A0] t-elev'}">${d.slice(0,5)}</button>`;
+    }).join('')}
+    <button onclick="navigatePeriodo(1)" ${idx===vis.length-1?'disabled':''} class="p-1.5 rounded-lg border t-bdr t-elev t-fgm hover:border-[#0033A0] hover:text-[#0033A0] disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+      <i data-lucide="chevron-right" class="w-4 h-4"></i>
+    </button>`;
+  lucide.createIcons();
+}
+
+function setActivePeriodo(date) {
+  const sel=document.getElementById('filterPeriodo');
+  sel.value=date;
+  updateNavBtns();
+  document.getElementById('headerDate').textContent=date;
+  buildPeriodBar();
+  renderDashboard();
+}
+
+function navigatePeriodo(dir) {
+  const vis=visibleDates();
+  const asOf=document.getElementById('filterPeriodo').value;
+  let i=vis.indexOf(asOf); if(i<0) i=vis.length-1;
+  const ni=i+dir;
+  if(ni<0||ni>=vis.length) return;
+  setActivePeriodo(vis[ni]);
+}
+
+/* ── BREAKDOWN ───────────────────────────────────────────────────────────── */
+function breakdown(p) {
+  return {
+    total: p.Total_Tarefas||0,
+    done:  p.Concluido||p.Tarefas_Concluidas||0,
+    wip:   p.Em_Andamento||0,
+    todo:  p.A_Fazer||0,
+    na:    p.Nao_se_Aplica||0,
+    bloq:  p.Pendencia_Externa==='Sim' ? Math.max(1, Math.round((p.Em_Andamento||0)*.2)) : 0
+  };
+}
+
+/* ── EVOLUTION ───────────────────────────────────────────────────────────── */
+function evoStatus(name, asOf) {
+  const idx=historicalDates.indexOf(asOf);
+  const recs=rawRecords.filter(r=>r.Nome_Produto===name&&historicalDates.indexOf(r.Data_Coleta)<=idx)
+    .sort((a,b)=>historicalDates.indexOf(a.Data_Coleta)-historicalDates.indexOf(b.Data_Coleta));
+  if(recs.length<2) return {type:'new'};
+  const last=recs[recs.length-1],prev=recs[recs.length-2];
+  const dC=(last.Concluido||0)-(prev.Concluido||0);
+  const dW=(last.Em_Andamento||0)-(prev.Em_Andamento||0);
+  const dP=(last.Percentual_Progresso||0)-(prev.Percentual_Progresso||0);
+  if(dC>0||dP>0) return {type:'evolving',dC,dW};
+  let since=recs[0].Data_Coleta;
+  for(let i=1;i<recs.length;i++) if((recs[i].Concluido||0)>(recs[i-1].Concluido||0)) since=recs[i].Data_Coleta;
+  return {type:'stalled',since};
+}
+
+function isNew(name,asOf){
+  const idx=historicalDates.indexOf(asOf);
+  return [...new Set(rawRecords.filter(r=>r.Nome_Produto===name&&historicalDates.indexOf(r.Data_Coleta)<=idx).map(r=>r.Data_Coleta))].length===1;
+}
+
+/* ── PREV RECORD ─────────────────────────────────────────────────────────── */
+function getPrevBreakdown(name, asOf) {
+  const idx=historicalDates.indexOf(asOf);
+  const recs=rawRecords.filter(r=>r.Nome_Produto===name&&historicalDates.indexOf(r.Data_Coleta)<=idx)
+    .sort((a,b)=>historicalDates.indexOf(a.Data_Coleta)-historicalDates.indexOf(b.Data_Coleta));
+  if(recs.length<2) return null;
+  return breakdown(recs[recs.length-2]);
+}
+
+/* ── SPARKLINE ───────────────────────────────────────────────────────────── */
+function sparkline(name, asOf, W=100, H=52, showLabels=true) {
+  const PLOT=32;
+  const idx=historicalDates.indexOf(asOf);
+  const recs=rawRecords.filter(r=>r.Nome_Produto===name&&historicalDates.indexOf(r.Data_Coleta)<=idx)
+    .sort((a,b)=>historicalDates.indexOf(a.Data_Coleta)-historicalDates.indexOf(b.Data_Coleta));
+  if(recs.length<2) return `<span style="font-size:11px;color:var(--fg-muted)">—</span>`;
+  const pts=recs.map((r,i)=>({
+    x:(i/(recs.length-1))*(W-12)+6,
+    y:PLOT-(r.Percentual_Progresso/100)*(PLOT-10)-5,
+    pct:r.Percentual_Progresso, dt:r.Data_Coleta
+  }));
+  const line=pts.map((p,i)=>`${i===0?'M':'L'} ${p.x} ${p.y}`).join(' ');
+  const area=`${line} L ${pts[pts.length-1].x} ${PLOT} L ${pts[0].x} ${PLOT} Z`;
+  const sid=name.replace(/\W/g,'')+(showLabels?'L':'C');
+  const dots=pts.map((p,i)=>`<circle cx="${p.x}" cy="${p.y}" r="${i===pts.length-1?3.5:2.5}" fill="${i===pts.length-1?'#00CC99':'#0033A0'}"><title>${p.dt}: ${p.pct}%</title></circle>`).join('');
+  const labels=showLabels?pts.map(p=>{const pp=p.dt.split('/');return `<text x="${p.x}" y="${H-1}" text-anchor="middle" font-size="8" fill="var(--fg-muted)" font-family="Open Sans,sans-serif">${pp[0]}/${pp[1]}</text>`;}).join(''):'';
+  const ticks=showLabels?pts.map(p=>`<line x1="${p.x}" y1="${PLOT+2}" x2="${p.x}" y2="${PLOT+5}" stroke="var(--bdr)" stroke-width="1"/>`).join(''):'';
+  return `<svg width="${W}" height="${showLabels?H:PLOT}" style="overflow:visible">
+    <defs><linearGradient id="spg${sid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0033A0" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#0033A0" stop-opacity="0"/>
+    </linearGradient></defs>
+    <path d="${area}" fill="url(#spg${sid})"/>
+    <path d="${line}" fill="none" stroke="#00CCFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${ticks}${labels}
+  </svg>`;
+}
+
+/* ── ANALYSIS ────────────────────────────────────────────────────────────── */
+function analysisHTML(name, asOf) {
+  const idx=historicalDates.indexOf(asOf);
+  const recs=rawRecords.filter(r=>r.Nome_Produto===name&&historicalDates.indexOf(r.Data_Coleta)<=idx)
+    .sort((a,b)=>historicalDates.indexOf(a.Data_Coleta)-historicalDates.indexOf(b.Data_Coleta));
+  if(recs.length<2) return `<p style="color:var(--fg-muted);font-size:11px;padding:10px">Apenas uma coleta disponível.</p>`;
+  const p1=breakdown(recs[recs.length-2]),p2=breakdown(recs[recs.length-1]);
+  const rows=[['Concluídas',p1.done,p2.done,'#059669'],['Em Andamento',p1.wip,p2.wip,'#2563eb'],['A Fazer',p1.todo,p2.todo,'#334155'],['N/A',p1.na,p2.na,'#f59e0b']].map(([l,pv,cv,c])=>{
+    const d=cv-pv,ar=d>0?'↑':d<0?'↓':'→';
+    const cls=(d>0&&l==='Concluídas')||(d<0&&l==='A Fazer')?'color:#059669':(d>0&&l==='A Fazer')?'color:#e11d48':'color:var(--fg-muted)';
+    return `<tr style="border-bottom:1px solid var(--bdr)"><td style="padding:6px 10px 6px 0;font-size:11px;color:${c}">${l}</td><td style="padding:6px 8px;text-align:center;font-size:11px;color:var(--fg-muted)">${pv}</td><td style="padding:6px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--fg)">${cv}</td><td style="padding:6px 0 6px 8px;text-align:center;font-size:11px;font-weight:700;${cls}">${ar} ${Math.abs(d)||'–'}</td></tr>`;
+  }).join('');
+  const dC=p2.done-p1.done;
+  const ins=dC>1?'Excelente velocidade — considere puxar novas tarefas.':dC>0?'Avanço incremental estável.':p2.wip>p1.wip?'WIP crescendo sem conclusões.':'Sem movimentações — alinhar com responsável.';
+  return `<div style="margin-top:10px;padding:14px;border-radius:12px;border:1px solid var(--bdr);background:var(--bg-elev)" class="slide-in">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:11px;font-weight:700;color:var(--fg-sec)">Comparativo de coletas</span>
+      <span style="font-size:10px;color:var(--fg-muted)">${recs[recs.length-2].Data_Coleta} → ${recs[recs.length-1].Data_Coleta}</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="border-bottom:1px solid var(--bdr)">
+        <th style="padding-bottom:6px;text-align:left;font-size:10px;color:var(--fg-muted);font-weight:600">Campo</th>
+        <th style="padding-bottom:6px;text-align:center;font-size:10px;color:var(--fg-muted);font-weight:600">Ant.</th>
+        <th style="padding-bottom:6px;text-align:center;font-size:10px;color:var(--fg-muted);font-weight:600">Atual</th>
+        <th style="padding-bottom:6px;text-align:center;font-size:10px;color:var(--fg-muted);font-weight:600">Δ</th>
+      </tr></thead><tbody>${rows}</tbody>
+    </table>
+    <p style="margin-top:10px;padding-top:8px;border-top:1px solid var(--bdr);font-size:10px;font-style:italic;color:var(--fg-muted)">${ins}</p>
+  </div>`;
+}
+
+/* Expande/recolhe o detalhe completo do card (Ver +) */
+function toggleCardDetail(sid){
+  const el=document.getElementById('cd-'+sid), btn=document.getElementById('aib-'+sid);
+  if(!el) return;
+  const h=el.classList.toggle('hidden');
+  if(btn){
+    const lbl=btn.querySelector('.ver-lbl'); if(lbl) lbl.textContent=h?'Ver +':'Ver −';
+    const ch=btn.querySelector('.cd-chev'); if(ch) ch.style.transform=h?'':'rotate(180deg)';
+  }
+}
+
+function toggleAnalysis(sid,name,asOf) {
+  const el=document.getElementById(`ai-${sid}`),btn=document.getElementById(`aib-${sid}`);
+  if(!el) return;
+  const h=el.classList.toggle('hidden');
+  if(!h&&!el.dataset.loaded){el.innerHTML=analysisHTML(name,asOf);el.dataset.loaded='1';lucide.createIcons();}
+  if(btn) btn.querySelector('.ver-lbl').textContent=h?'Ver +':'Ver −';
+}
+
+/* ── CARD ────────────────────────────────────────────────────────────────── */
+function renderCard(p, cfg, asOf) {
+  const b=breakdown(p), pb=getPrevBreakdown(p.Nome_Produto,asOf);
+  const evo=evoStatus(p.Nome_Produto,asOf), nov=isNew(p.Nome_Produto,asOf);
+  const sid=(p.Nome_Produto+asOf).replace(/\W/g,'_'), t=b.total||1;
+  const hasPend=p.Pendencia_Externa==='Sim';
+
+  let borderStyle='border:2px solid var(--bdr);', glowCls='';
+  if(hasPend)                    borderStyle='border:2px solid rgba(204,51,51,.45);';
+  else if(evo.type==='evolving') {borderStyle='border:2px solid rgba(0,204,153,.45);'; glowCls='evo-glow';}
+  else if(evo.type==='stalled')  borderStyle='border:1.5px solid rgba(255,204,0,.35);';
+
+  // Ganho da semana
+  let ganho='';
+  if(evo.type==='evolving'){
+    const c1=evo.dC>0?`<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(0,204,153,.14);border:1px solid rgba(0,204,153,.35);color:#00CC99;font-size:13px;font-weight:700;padding:6px 12px;border-radius:8px"><span class="arrow-up">↑</span>+${evo.dC} Feito</span>`:'';
+    const c2=evo.dW>0?`<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(0,204,255,.12);border:1px solid rgba(0,204,255,.3);color:#00CCFF;font-size:13px;font-weight:700;padding:6px 12px;border-radius:8px">+${evo.dW} WIP</span>`:'';
+    ganho=`<div style="display:flex;flex-direction:column;gap:6px">${c1}${c2}</div>`;
+  } else if(evo.type==='stalled'){
+    ganho=`<span class="stall-dim" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,204,0,.1);border:1px solid rgba(255,204,0,.3);color:#FFCC00;font-size:12px;font-weight:700;padding:6px 12px;border-radius:8px">⏸ Parado desde ${evo.since}</span>`;
+  } else {
+    ganho=`<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(0,204,255,.09);border:1px solid rgba(0,204,255,.25);color:#00CCFF;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px">✦ Primeiro registro</span>`;
+  }
+
+  // Progress rows with inline comparison
+  const sep=`<span style="display:inline-block;width:1px;height:13px;background:var(--bdr);margin:0 6px;vertical-align:middle;flex-shrink:0"></span>`;
+  const pRow=(label,curr,prevVal,color)=>{
+    const cv=curr||0, pv=pb?prevVal||0:null;
+    const pct=Math.round(cv/t*100);
+    const isGood=label==='Feito'?true:(label==='Fazer'||label.indexOf('Pend')===0)?false:null;
+    let cmpHTML='';
+    if(pb!==null){
+      const d=cv-(pv||0);
+      const dStr=d>0?`+${d}`:d<0?`${d}`:'';
+      const dColor=isGood===true?(d>0?'#059669':d<0?'#e11d48':'var(--fg-muted)')
+                  :isGood===false?(d<0?'#059669':d>0?'#e11d48':'var(--fg-muted)')
+                  :'var(--fg-muted)';
+      cmpHTML=`${sep}<span style="font-size:10px;color:var(--fg-muted);white-space:nowrap">${pv} → ${cv}</span>${dStr?`<span style="font-size:10px;font-weight:700;color:${dColor};margin-left:4px;white-space:nowrap">Δ${dStr}</span>`:''}`;
+    }
+    return `<div style="display:flex;align-items:center;gap:8px">
+      <span style="width:92px;font-size:11px;color:var(--fg-muted);flex-shrink:0">${label}</span>
+      <div style="flex:1;height:6px;background:var(--bdr);border-radius:99px;overflow:hidden;min-width:30px">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:99px;transition:width .4s"></div>
+      </div>
+      <div style="display:flex;align-items:center;flex-shrink:0">
+        <span style="font-size:11px;font-weight:600;color:var(--fg-sec);white-space:nowrap">${cv} (${pct}%)</span>
+        ${cmpHTML}
+      </div>
+    </div>`;
+  };
+
+  // Footer pills — larger
+  const pill=(n,color,bg,icon,label)=>`<span style="display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:800;color:${color};background:${bg};border:1px solid ${color}40;padding:5px 12px;border-radius:99px;${n===0?'opacity:.45':''}">${icon} ${n}<span style="font-size:10px;font-weight:600;opacity:.8;margin-left:1px">${label}</span></span>`;
+
+  return `<div class="${glowCls}" style="${borderStyle}background:var(--bg-card);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:14px;transition:all .2s;box-shadow:var(--shadow-sm)">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+      <div style="min-width:0">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+          <h4 style="font-size:15px;font-weight:700;color:var(--fg);line-height:1.3;margin:0">${p.Nome_Produto}</h4>
+          ${nov?`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(0,204,255,.1);border:1px solid rgba(0,204,255,.25);color:#00CCFF">✦ Novo</span>`:''}
+          ${FORMER_NAME[p.Nome_Produto]?`<span title="Produto renomeado — histórico mantido" style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--bg-elev);border:1px dashed var(--bdr);color:var(--fg-muted);display:inline-flex;align-items:center;gap:4px">✎ ex-${FORMER_NAME[p.Nome_Produto]}</span>`:''}
+        </div>
+        <div style="font-size:10px;color:var(--fg-muted);margin-top:3px">Previsão de término: <strong style="color:var(--fg-sec);font-weight:600">${p.Previsao_Termino}</strong></div>
+      </div>
+      <button id="aib-${sid}" onclick="toggleCardDetail('${sid}')"
+        style="flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--fg-muted);background:var(--bg-elev);border:1px solid var(--bdr);padding:4px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all .15s">
+        <span class="ver-lbl">Ver +</span><i data-lucide="chevron-down" class="cd-chev" style="width:12px;height:12px;transition:transform .2s"></i>
+      </button>
+    </div>
+
+    <!-- Ganho da semana — fundo claro com borda fina -->
+    <div style="border:1px solid var(--bdr);background:var(--bg-elev);border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-size:9px;font-weight:700;color:var(--fg-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Ganho da Semana</div>
+        ${ganho}
+      </div>
+      <div style="flex-shrink:0">${sparkline(p.Nome_Produto,asOf)}</div>
+    </div>
+
+    <!-- Barra de progresso empilhada + % -->
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="flex:1;height:8px;border-radius:99px;overflow:hidden;display:flex;background:var(--bdr)">
+        <div style="width:${(b.done/t*100).toFixed(1)}%;background:#059669;transition:width .4s"></div>
+        <div style="width:${(b.wip/t*100).toFixed(1)}%;background:#2563eb;transition:width .4s"></div>
+        <div style="width:${(b.na/t*100).toFixed(1)}%;background:#f59e0b;transition:width .4s"></div>
+        <div style="width:${(b.todo/t*100).toFixed(1)}%;background:#334155;transition:width .4s"></div>
+      </div>
+      <span style="font-size:14px;font-weight:800;flex-shrink:0;min-width:38px;text-align:right;color:${p.Percentual_Progresso>=50?'#059669':p.Percentual_Progresso>=25?'#f59e0b':'#e11d48'}">${p.Percentual_Progresso}%</span>
+    </div>
+
+    <!-- Pill badges de andamento — SEMPRE visíveis (sem precisar de Ver +) -->
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      ${pill(b.done, '#059669','rgba(5,150,105,.1)',  '✓','Feito')}
+      ${pill(b.wip,  '#2563eb','rgba(37,99,235,.1)',  '⟳','WIP')}
+      ${pill(b.todo, '#334155','rgba(51,65,85,.1)',   '○','Fazer')}
+      ${pill(b.na,   '#f59e0b','rgba(245,158,11,.1)', '—','N/A')}
+      ${pill(b.bloq, '#e11d48','rgba(225,29,72,.1)',  '⚠','Bloq.')}
+    </div>
+
+    <!-- DETALHE recolhível (Ver +): barras de progresso + comparativo -->
+    <div id="cd-${sid}" class="hidden">
+      <div style="display:flex;flex-direction:column;gap:14px;padding-top:14px;border-top:1px solid var(--bdr)">
+        <!-- Progress rows com comparativo inline (mostra todos, inclusive 0) -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${pRow('Feito',          b.done, pb?.done, '#059669')}
+          ${pRow('Fazendo (WIP)',  b.wip,  pb?.wip,  '#2563eb')}
+          ${pRow('Fazer',          b.todo, pb?.todo, '#334155')}
+          ${pRow('Não se Aplica',  b.na,   pb?.na,   '#f59e0b')}
+          ${pRow('Pend. externa',  b.bloq, pb?.bloq, '#e11d48')}
+        </div>
+
+        <!-- Comparativo de coletas -->
+        ${evo.type!=='new'?analysisHTML(p.Nome_Produto,asOf):''}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ── TABLE ───────────────────────────────────────────────────────────────── */
+function renderTable(prods, cfg, asOf) {
+  const rows=prods.map(p=>{
+    const b=breakdown(p),evo=evoStatus(p.Nome_Produto,asOf),t=b.total||1;
+    const sid=(p.Nome_Produto+asOf).replace(/\W/g,'_');
+    const pC=Math.round(b.done/t*100),pW=Math.round(b.wip/t*100),pN=Math.round(b.na/t*100),pF=Math.round(b.todo/t*100);
+    const evoCell=evo.type==='evolving'?`<span class="arrow-up" style="font-size:13px;font-weight:700;color:#00CC99">▲ +${evo.dC}</span>`:evo.type==='stalled'?`<span class="stall-dim" style="font-size:11px;font-weight:700;color:#FFCC00">⏸ ${evo.since}</span>`:`<span style="font-size:12px;font-weight:700;color:#00CCFF">✦ Novo</span>`;
+    const hasPend=p.Pendencia_Externa==='Sim';
+    return `<tr style="border-bottom:1px solid var(--bdr)" onmouseover="this.style.background='rgba(0,51,160,.04)'" onmouseout="this.style.background=''">
+      <td style="padding:12px 16px">
+        <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:3px">${p.Nome_Produto}</div>
+        <div style="font-size:10px;color:var(--fg-muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span>Prev: ${p.Previsao_Termino}</span>·<span>${b.total} tarefas</span>
+          ${hasPend?`<span style="color:#e11d48;font-weight:700">⚠ ${b.bloq} tarefa${b.bloq!==1?'s':''} bloqueada${b.bloq!==1?'s':''}</span>`:''}
+        </div>
+        ${evo.type!=='new'?`<button id="aib-${sid}" onclick="toggleAnalysis('${sid}','${p.Nome_Produto.replace(/'/g,"\\'")}','${asOf}')"
+          style="margin-top:5px;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--fg-muted);background:var(--bg-elev);border:1px solid var(--bdr);padding:3px 8px;border-radius:6px;cursor:pointer">
+          <span class="ver-lbl">Ver +</span></button><div id="ai-${sid}" class="hidden"></div>`:''}
+      </td>
+      <td style="padding:12px 16px;text-align:center">${sparkline(p.Nome_Produto,asOf,100,52)}</td>
+      <td style="padding:12px 16px;text-align:center">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <span style="font-size:14px;font-weight:800;color:${p.Percentual_Progresso>=50?'#059669':p.Percentual_Progresso>=25?'#f59e0b':'#e11d48'}">${p.Percentual_Progresso}%</span>
+          <div style="width:80px;height:6px;border-radius:99px;overflow:hidden;display:flex;background:var(--bdr)">
+            <div style="width:${pC}%;background:#059669"></div><div style="width:${pW}%;background:#2563eb"></div>
+            <div style="width:${pN}%;background:#f59e0b"></div><div style="width:${pF}%;background:#334155"></div>
+          </div>
+        </div>
+      </td>
+      <td style="padding:12px 16px;text-align:center">${evoCell}</td>
+      <td style="padding:12px 16px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;min-width:150px">
+          <div><div style="font-size:14px;font-weight:800;color:#059669">${b.done}</div><div style="font-size:9px;color:var(--fg-muted)">Feito</div></div>
+          <div><div style="font-size:14px;font-weight:800;color:#2563eb">${b.wip}</div><div style="font-size:9px;color:var(--fg-muted)">WIP</div></div>
+          <div><div style="font-size:14px;font-weight:800;color:#334155">${b.todo}</div><div style="font-size:9px;color:var(--fg-muted)">Fazer</div></div>
+          <div><div style="font-size:14px;font-weight:800;color:#f59e0b">${b.na}</div><div style="font-size:9px;color:var(--fg-muted)">N/A</div></div>
+        </div>
+      </td>
+      <td style="padding:12px 16px;text-align:center">
+        ${hasPend
+          ?`<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:#e11d48;background:rgba(225,29,72,.1);border:1px solid rgba(225,29,72,.25);padding:4px 10px;border-radius:99px">⚠ ${b.bloq}</span>`
+          :`<span style="font-size:11px;color:var(--fg-muted);background:var(--bg-elev);border:1px solid var(--bdr);padding:4px 10px;border-radius:99px">—</span>`}
+      </td>
+    </tr>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+    <thead><tr style="border-bottom:2px solid var(--bdr);background:var(--bg-elev)">
+      ${['Produto','Evolução','Progresso','Status Evo.','Tarefas','Bloqueadas'].map(h=>`<th style="padding:10px 16px;text-align:${h==='Produto'?'left':'center'};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--fg-muted)">${h}</th>`).join('')}
+    </tr></thead><tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+/* ── MODULE CFG ──────────────────────────────────────────────────────────── */
+const MCFG={
+  'Construção e Lançamento de Produtos de Parcerias':{icon:'handshake',label:'Parceria',color:'#0033A0',bgPill:'rgba(0,51,160,.1)',borderPill:'rgba(0,51,160,.3)',borderCard:'rgba(0,51,160,.25)'},
+  'Construção e Lançamento de Produtos Internos':    {icon:'cpu',label:'Interno',color:'#00CCFF',bgPill:'rgba(0,204,255,.1)',borderPill:'rgba(0,204,255,.3)',borderCard:'rgba(0,204,255,.2)'},
+  'Amadurecimento de Oportunidades':                 {icon:'lightbulb',label:'Oportunidade',color:'#FFCC00',bgPill:'rgba(255,204,0,.1)',borderPill:'rgba(255,204,0,.3)',borderCard:'rgba(255,204,0,.2)'}
+};
+const MORD=['Construção e Lançamento de Produtos de Parcerias','Construção e Lançamento de Produtos Internos','Amadurecimento de Oportunidades'];
+
+/* ── KPIs ────────────────────────────────────────────────────────────────── */
+function updateKPIs(list, asOf) {
+  const s=id=>v=>{document.getElementById(id).textContent=v;};
+  s('k-total')(list.length);
+  s('k-int')(list.filter(p=>p.Tipo_Modulo.includes('Internos')).length);
+  s('k-par')(list.filter(p=>p.Tipo_Modulo.includes('Parcerias')).length);
+  s('k-opp')(list.filter(p=>p.Tipo_Modulo.includes('Oportunidades')).length);
+  s('k-evol')(list.filter(p=>evoStatus(p.Nome_Produto,asOf).type==='evolving').length);
+  s('k-stall')(list.filter(p=>evoStatus(p.Nome_Produto,asOf).type==='stalled').length);
+  s('k-novos')(list.filter(p=>isNew(p.Nome_Produto,asOf)).length);
+}
+
+/* ── DESTAQUES DA COLETA ─────────────────────────────────────────────────── */
+function renderHighlights(list, asOf) {
+  const el=document.getElementById('highlightsContent');
+  document.getElementById('hlDateTxt').textContent=asOf||'—';
+  if(!list.length){el.innerHTML=`<div style="grid-column:1/-1;border:1px dashed var(--bdr);border-radius:14px;padding:18px;text-align:center;font-size:12px;color:var(--fg-muted)">Sem produtos para os filtros selecionados.</div>`;return;}
+
+  const trunc=n=>n.length>24?n.slice(0,22)+'…':n;
+  const card=(accent,icon,title,body)=>`
+    <div style="border:1px solid var(--bdr);border-left:3px solid ${accent};background:var(--bg-card);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px">
+        <span style="color:${accent};font-size:15px;line-height:1">${icon}</span>
+        <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:${accent}">${title}</span>
+      </div>${body}</div>`;
+  const line=(idx,name,valHTML,sub)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;${idx>0?'border-top:1px solid var(--bdr)':''}">
+      <span title="${name.replace(/"/g,'')}" style="flex:1;min-width:0;font-size:12px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${trunc(name)}${sub?` <span style="font-size:9px;color:var(--fg-muted)">${sub}</span>`:''}</span>
+      <span style="flex-shrink:0;font-size:12px;font-weight:800">${valHTML}</span>
+    </div>`;
+  const empty=msg=>`<p style="font-size:11px;color:var(--fg-muted);font-style:italic;padding:4px 0">${msg}</p>`;
+
+  // 1 · Mais avançados (top 3 por %)
+  const top=[...list].sort((a,b)=>b.Percentual_Progresso-a.Percentual_Progresso).slice(0,3);
+  const c1=top.map((p,i)=>line(i,p.Nome_Produto,`<span style="color:${p.Percentual_Progresso>=50?'#059669':p.Percentual_Progresso>=25?'#f59e0b':'#e11d48'}">${p.Percentual_Progresso}%</span>`)).join('');
+
+  // 2 · Maior avanço da semana (Δ concluídas > 0)
+  const adv=list.map(p=>{const pb=getPrevBreakdown(p.Nome_Produto,asOf);return{p,d:pb?breakdown(p).done-pb.done:null};})
+    .filter(x=>x.d!==null&&x.d>0).sort((a,b)=>b.d-a.d).slice(0,3);
+  const c2=adv.length?adv.map((x,i)=>line(i,x.p.Nome_Produto,`<span class="arrow-up" style="color:#059669">+${x.d}</span>`,'feito')).join('')
+    :empty('Sem novas conclusões nesta coleta.');
+
+  // 3 · Prazos vencidos (Previsao_Termino < coleta)
+  const od=list.filter(p=>p.Previsao_Termino&&parseBR(p.Previsao_Termino)<parseBR(asOf))
+    .sort((a,b)=>parseBR(a.Previsao_Termino)-parseBR(b.Previsao_Termino));
+  const c3=od.length
+    ?`<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px"><span style="font-size:26px;font-weight:800;color:#e11d48;line-height:1">${od.length}</span><span style="font-size:10px;color:var(--fg-muted)">de ${list.length} com prazo vencido</span></div>`
+     +od.slice(0,3).map((p,i)=>line(i,p.Nome_Produto,`<span style="color:#e11d48;font-size:10px;font-weight:700">${p.Previsao_Termino}</span>`)).join('')
+     +(od.length>3?`<p style="font-size:9px;color:var(--fg-muted);padding-top:6px">+${od.length-3} outro(s)</p>`:'')
+    :empty('Nenhum prazo vencido. 🎉');
+
+  // 4 · Menor progresso / atenção (bottom 3 por %)
+  const low=[...list].sort((a,b)=>a.Percentual_Progresso-b.Percentual_Progresso).slice(0,3);
+  const c4=low.map((p,i)=>{const ev=evoStatus(p.Nome_Produto,asOf);const tag=ev.type==='stalled'?` <span style="font-size:9px;color:#FFCC00;font-weight:700">⏸</span>`:isNew(p.Nome_Produto,asOf)?` <span style="font-size:9px;color:#00CCFF;font-weight:700">✦</span>`:'';
+    return line(i,p.Nome_Produto+tag,`<span style="color:${p.Percentual_Progresso>=50?'#059669':p.Percentual_Progresso>=25?'#f59e0b':'#e11d48'}">${p.Percentual_Progresso}%</span>`);}).join('');
+
+  el.innerHTML=
+    card('#059669','🏆','Mais avançados',c1)+
+    card('#00CCFF','🚀','Maior avanço da semana',c2)+
+    card('#FFCC00','🐢','Menor progresso',c4)+
+    card('#e11d48','⚠️','Prazos vencidos',c3);
+}
+
+/* ── PORTFOLIO OVERVIEW ──────────────────────────────────────────────────── */
+function renderPO(list, asOf) {
+  const el=document.getElementById('poContent');
+  if(!list.length){el.innerHTML='';return;}
+  const sorted=[...list].sort((a,b)=>b.Percentual_Progresso-a.Percentual_Progresso);
+  const legend=`<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap;font-size:10px;color:var(--fg-muted)">
+    ${[['#059669','Feito'],['#2563eb','WIP'],['#f59e0b','N/A'],['#334155','A Fazer']].map(([c,l])=>`<span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:10px;border-radius:3px;background:${c};display:inline-block"></span>${l}</span>`).join('')}
+    <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:2px;border-radius:2px;background:#00CCFF;display:inline-block"></span>evolução</span>
+    <span style="margin-left:auto">${list.length} produto(s)</span></div>`;
+  const bars=sorted.map(p=>{
+    const b=breakdown(p),t=b.total||1,evo=evoStatus(p.Nome_Produto,asOf);
+    const nm=p.Nome_Produto.length>36?p.Nome_Produto.slice(0,34)+'…':p.Nome_Produto;
+    const ic=evo.type==='evolving'?`<span class="arrow-up" style="font-size:11px;font-weight:700;color:#00CC99">▲</span>`:evo.type==='stalled'?`<span class="stall-dim" style="font-size:10px;font-weight:700;color:#FFCC00">⏸</span>`:isNew(p.Nome_Produto,asOf)?`<span style="font-size:10px;font-weight:700;color:#00CCFF">✦</span>`:'';
+    const dLbl=evo.type==='evolving'&&evo.dC>0?`<span style="font-size:9px;font-weight:700;color:#059669">+${evo.dC}</span>`:'';
+    const pC=(b.done/t*100).toFixed(1),pW=(b.wip/t*100).toFixed(1),pN=(b.na/t*100).toFixed(1),pF=(b.todo/t*100).toFixed(1);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:5px 0">
+      <div style="display:flex;align-items:center;gap:5px;width:220px;flex-shrink:0">${ic||'<span style="width:13px"></span>'}${dLbl}<span style="font-size:11px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">${nm}</span>${p.Pendencia_Externa==='Sim'?`<span style="font-size:9px;color:#e11d48;font-weight:700;flex-shrink:0">⚠${b.bloq}</span>`:''}</div>
+      <div style="flex:1;height:12px;border-radius:99px;overflow:hidden;display:flex;background:var(--bdr)">
+        <div style="width:${pC}%;background:#059669"></div><div style="width:${pW}%;background:#2563eb"></div>
+        <div style="width:${pN}%;background:#f59e0b"></div><div style="width:${pF}%;background:rgba(51,65,85,.4)"></div>
+      </div>
+      <div style="width:88px;flex-shrink:0;display:flex;justify-content:center" title="Evolução do progresso de ${nm}">${sparkline(p.Nome_Produto,asOf,88,26,false)}</div>
+      <span style="width:36px;text-align:right;font-size:12px;font-weight:700;color:${p.Percentual_Progresso>=50?'#059669':p.Percentual_Progresso>=25?'#f59e0b':'#e11d48'}">${p.Percentual_Progresso}%</span>
+    </div>`;
+  }).join('');
+  el.innerHTML=legend+`<div>${bars}</div>`;
+}
+
+function togglePO(){
+  const c=document.getElementById('poContent'),i=document.getElementById('poChev'),vm=document.getElementById('poVM');
+  const h=c.classList.toggle('hidden');
+  if(i) i.style.transform=h?'rotate(-90deg)':'';
+  if(vm) vm.textContent=h?'Ver Mais':'Ver Menos';
+}
+
+/* ── GROUPS ──────────────────────────────────────────────────────────────── */
+function renderGroups(list, asOf) {
+  const gc=document.getElementById('groupsContainer'); gc.innerHTML='';
+  if(!list.length){
+    gc.innerHTML=`<div class="t-card border rounded-2xl p-12 text-center"><p class="t-fgm text-sm">Nenhum produto corresponde aos filtros selecionados.</p></div>`;
+    lucide.createIcons(); return;
+  }
+  const grouped={};
+  list.forEach(p=>{(grouped[p.Tipo_Modulo]=grouped[p.Tipo_Modulo]||[]).push(p);});
+  MORD.forEach(mod=>{
+    const prods=grouped[mod]; if(!prods) return;
+    const cfg=MCFG[mod], sid=mod.replace(/\W/g,'_'), coll=window.innerWidth<768?false:collapsedMods[mod]!==false;
+    const nEvol=prods.filter(p=>evoStatus(p.Nome_Produto,asOf).type==='evolving').length;
+    const nStall=prods.filter(p=>evoStatus(p.Nome_Produto,asOf).type==='stalled').length;
+    const nNov=prods.filter(p=>isNew(p.Nome_Produto,asOf)).length;
+    const content=viewMode==='cards'
+      ?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;padding:20px">${prods.map(p=>renderCard(p,cfg,asOf)).join('')}</div>`
+      :renderTable(prods,cfg,asOf);
+
+    // Mini-stat tile helper
+    const mTile=(n,color,bg,border,icon,lbl)=>`
+      <div style="text-align:center;padding:8px 14px;border-radius:10px;background:${bg};border:1px solid ${border}">
+        <div style="font-size:17px;font-weight:800;color:${color}">${n}</div>
+        <div style="font-size:9px;font-weight:700;color:${color};opacity:.85;margin-top:1px">${icon} ${lbl}</div>
+      </div>`;
+
+    gc.insertAdjacentHTML('beforeend',`
+      <div style="border:1px solid ${cfg.borderCard};background:var(--bg-card);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)">
+        <div onclick="toggleMod('${mod}')" class="sec-hdr" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;cursor:pointer;background:var(--bg-elev);border-bottom:1px solid var(--bdr);user-select:none;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          <!-- Left: icon + name + chevron -->
+          <div class="sec-left" style="display:flex;align-items:center;gap:12px;min-width:0">
+            <div style="padding:8px;border-radius:10px;background:rgba(0,51,160,.09);border:1px solid ${cfg.borderCard};color:${cfg.color};flex-shrink:0">
+              <i data-lucide="${cfg.icon}" style="width:18px;height:18px;display:block"></i>
+            </div>
+            <h3 style="font-size:14px;font-weight:700;color:var(--fg);margin:0;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mod}</span>
+              <span class="sec-vm" style="display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:11px;font-weight:600;color:var(--fg-muted)">
+                <span class="vm-lbl">${coll?'Ver Mais':'Ver Menos'}</span>
+                <i id="mch-${sid}" data-lucide="chevron-down" style="width:13px;height:13px;transition:transform .2s;${coll?'transform:rotate(-90deg)':''}"></i>
+              </span>
+            </h3>
+          </div>
+          <!-- Right: mini-stat tiles -->
+          <div class="sec-tiles" style="display:flex;gap:8px;flex-shrink:0" onclick="event.stopPropagation()">
+            ${mTile(nEvol,'#00CC99','rgba(0,204,153,.08)','rgba(0,204,153,.25)','▲','Evoluindo')}
+            ${mTile(nStall,'#FFCC00','rgba(255,204,0,.08)','rgba(255,204,0,.25)','⏸','Parados')}
+            ${mTile(nNov,'#00CCFF','rgba(0,204,255,.08)','rgba(0,204,255,.25)','✦','Novos')}
+            ${mTile(prods.length,'var(--fg-sec)','var(--bg-card)','var(--bdr)','','Produtos')}
+          </div>
+        </div>
+        <div id="mc-${sid}" class="${coll?'hidden':''}">${content}</div>
+      </div>`);
+  });
+  lucide.createIcons();
+}
+
+function toggleMod(name){
+  if(window.innerWidth<768) return;
+  const sid=name.replace(/\W/g,'_');
+  const el=document.getElementById(`mc-${sid}`),ico=document.getElementById(`mch-${sid}`);
+  if(!el) return;
+  const h=el.classList.toggle('hidden');
+  if(ico){
+    ico.style.transform=h?'rotate(-90deg)':'';
+    const vm=ico.parentElement&&ico.parentElement.querySelector('.vm-lbl');
+    if(vm) vm.textContent=h?'Ver Mais':'Ver Menos';
+  }
+  collapsedMods[name]=h;
+}
+
+/* ── MOBILE FILTER DRAWER ────────────────────────────────────────────────── */
+function toggleFilterMobile() {
+  const tb=document.getElementById('toolbar');
+  const bd=document.getElementById('filterBackdrop');
+  const btn=document.getElementById('btnFilterMobile');
+  const open=tb.classList.toggle('mob-open');
+  bd.classList.toggle('mob-open',open);
+  btn.style.color=open?'#0033A0':'';
+  btn.style.borderColor=open?'#0033A0':'';
+}
+function updateFilterBadge() {
+  const badge=document.getElementById('filterBadge');
+  if(!badge) return;
+  const mod=msGetVals('msModuloPanel');
+  const pen=msGetVals('msPendPanel');
+  let count=0;
+  if(mod[0]!=='__ALL__') count++;
+  if(pen[0]!=='__ALL__') count++;
+  if(count>0){badge.textContent=count;badge.classList.remove('hidden');}
+  else badge.classList.add('hidden');
+}
+
+/* ── RENDER ──────────────────────────────────────────────────────────────── */
+function renderDashboard() {
+  const modSel=msGetVals('msModuloPanel'),penSel=msGetVals('msPendPanel');
+  const asOf=document.getElementById('filterPeriodo').value;
+  const dateRecs=rawRecords.filter(r=>r.Data_Coleta===asOf);
+  const filtered=dateRecs.filter(p=>{
+    return (modSel[0]==='__ALL__'||modSel.includes(p.Tipo_Modulo))
+        && (penSel[0]==='__ALL__'||penSel.includes(p.Pendencia_Externa));
+  });
+  updateKPIs(filtered,asOf);
+  renderHighlights(filtered,asOf);
+  renderPO(filtered,asOf);
+  renderGroups(filtered,asOf);
+  updateFilterBadge();
+  lucide.createIcons();
+}
+
+/* ── MULTI-SELECT ────────────────────────────────────────────────────────── */
+function msGetVals(pid){
+  const boxes=[...document.getElementById(pid).querySelectorAll('input[type=checkbox]')];
+  const aB=boxes.find(b=>b.value==='__ALL__');
+  if(aB?.checked) return ['__ALL__'];
+  const sel=boxes.filter(b=>b.value!=='__ALL__'&&b.checked).map(b=>b.value);
+  return sel.length?sel:['__ALL__'];
+}
+function msUpdLbl(lid,tid,vals,allLbl,names){
+  const lbl=document.getElementById(lid),trg=document.getElementById(tid);
+  let bdg=trg.querySelector('.ms-bdg');
+  if(vals[0]==='__ALL__'||!vals.length){lbl.textContent=allLbl;if(bdg)bdg.remove();}
+  else{const s=vals.map(v=>names[v]||v).join(', ');lbl.textContent=s.length>26?s.slice(0,24)+'…':s;if(!bdg){bdg=document.createElement('span');bdg.className='ms-bdg';trg.insertBefore(bdg,trg.lastElementChild);}bdg.textContent=vals.length;}
+}
+function msSetup(did,pid,tid,lid,allLbl,names,onChange){
+  const trg=document.getElementById(tid),pnl=document.getElementById(pid);
+  const boxes=[...pnl.querySelectorAll('input[type=checkbox]')];
+  const aBox=boxes.find(b=>b.value==='__ALL__'),optB=boxes.filter(b=>b.value!=='__ALL__');
+  trg.addEventListener('click',e=>{e.stopPropagation();const op=pnl.classList.toggle('open');trg.classList.toggle('open',op);document.querySelectorAll('.ms-panel.open').forEach(p=>{if(p.id!==pid){p.classList.remove('open');document.getElementById(p.id.replace('Panel','Trigger'))?.classList.remove('open');}});});
+  aBox?.addEventListener('change',()=>{if(aBox.checked){optB.forEach(b=>{b.checked=false;b.closest('.ms-item').classList.remove('sel');});aBox.closest('.ms-item').classList.add('sel');}msUpdLbl(lid,tid,msGetVals(pid),allLbl,names);onChange();});
+  optB.forEach(box=>{box.addEventListener('change',()=>{if(box.checked){if(aBox){aBox.checked=false;aBox.closest('.ms-item').classList.remove('sel');}box.closest('.ms-item').classList.add('sel');}else{box.closest('.ms-item').classList.remove('sel');if(optB.every(b=>!b.checked)&&aBox){aBox.checked=true;aBox.closest('.ms-item').classList.add('sel');}}msUpdLbl(lid,tid,msGetVals(pid),allLbl,names);onChange();});});
+  document.addEventListener('click',()=>{pnl.classList.remove('open');trg.classList.remove('open');});
+  pnl.addEventListener('click',e=>e.stopPropagation());
+}
+
+/* ── THEME ───────────────────────────────────────────────────────────────── */
+function toggleTheme(){
+  const dark=document.documentElement.classList.toggle('dark');
+  document.getElementById('icoMoon').classList.toggle('hidden',dark);
+  document.getElementById('icoSun').classList.toggle('hidden',!dark);
+  localStorage.setItem('serpro-theme',dark?'dark':'light');
+}
+
+/* ── INIT ────────────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded',()=>{
+  if(localStorage.getItem('serpro-theme')==='dark'){
+    document.documentElement.classList.add('dark');
+    document.getElementById('icoMoon').classList.add('hidden');
+    document.getElementById('icoSun').classList.remove('hidden');
+  }
+  processData(parseCSV(CSV));
+  const mN={'Construção e Lançamento de Produtos de Parcerias':'Parcerias','Construção e Lançamento de Produtos Internos':'Internos','Amadurecimento de Oportunidades':'Oportunidades'};
+  const pN={'Sim':'Com Pendência','Não':'Sem Pendência'};
+  msSetup('msModulo','msModuloPanel','msModuloTrigger','msModuloLabel','Todos os Módulos',mN,renderDashboard);
+  msSetup('msPend','msPendPanel','msPendTrigger','msPendLabel','Todas as Pendências',pN,renderDashboard);
+  msUpdLbl('msModuloLabel','msModuloTrigger',['Construção e Lançamento de Produtos de Parcerias','Construção e Lançamento de Produtos Internos'],'Todos os Módulos',mN);
+  renderDashboard();
+  document.getElementById('filterPeriodo').addEventListener('change',()=>{
+    updateNavBtns();
+    document.getElementById('headerDate').textContent=document.getElementById('filterPeriodo').value;
+    buildPeriodBar();
+    renderDashboard();
+  });
+  document.getElementById('btnCards').addEventListener('click',()=>{
+    viewMode='cards';
+    document.getElementById('btnCards').className='flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-[#0033A0] text-white transition-all';
+    document.getElementById('btnTable').className='flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold t-fgm transition-all';
+    renderDashboard();
+  });
+  document.getElementById('btnTable').addEventListener('click',()=>{
+    viewMode='table';
+    document.getElementById('btnTable').className='flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-[#0033A0] text-white transition-all';
+    document.getElementById('btnCards').className='flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold t-fgm transition-all';
+    renderDashboard();
+  });
+  document.getElementById('btnClear').addEventListener('click',()=>{
+    ['msModuloPanel','msPendPanel'].forEach(pid=>{
+      const p=document.getElementById(pid);
+      p.querySelectorAll('input[type=checkbox]').forEach(b=>{b.checked=b.value==='__ALL__';});
+      p.querySelectorAll('.ms-item').forEach(i=>i.classList.remove('sel'));
+      p.querySelector('input[value="__ALL__"]')?.closest('.ms-item')?.classList.add('sel');
+    });
+    msUpdLbl('msModuloLabel','msModuloTrigger',['__ALL__'],'Todos os Módulos',mN);
+    msUpdLbl('msPendLabel','msPendTrigger',['__ALL__'],'Todas as Pendências',pN);
+    document.getElementById('filterPeriodo').selectedIndex=document.getElementById('filterPeriodo').options.length-1;
+    updateNavBtns();
+    buildPeriodBar();
+    renderDashboard();
+    toast('Filtros redefinidos.');
+  });
+  document.getElementById('btnTheme').addEventListener('click',toggleTheme);
+});
+</script>
+</body>
+</html>
